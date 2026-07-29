@@ -20,15 +20,29 @@ The person you're working with is learning software development by building this
 
 **What's built:**
 - Next.js project scaffolded with TypeScript and Tailwind
-- `app/api/menu/route.ts` — API route that reads from local data and returns menu items for a given restaurant
-- `data/restaurants.json` — nutrition data for Chick-fil-A, McDonald's, and Chipotle
+- `lib/db.ts` — SQLite (better-sqlite3) schema plus a seed of 7 restaurants: Chick-fil-A, McDonald's, Chipotle, Taco Bell, Panda Express, Raising Cane's, Whataburger
+- `lib/parseQuery.ts` — keyword parser turning "high protein chick fil a around 800 calories" into goals, a restaurant slug, a calorie target and a budget flag
+- `lib/optimize.ts` — ranking for fixed menus, calorie-targeted meal combinations, and a joint search over slots for build-your-own restaurants
+- `lib/mealGrammar.ts` — the model of what shape an order has; see below
+- `app/api/search/route.ts`, `app/api/menu/route.ts` — the API surface
+- `app/page.tsx` + `app/components/` — homepage search UI and result rendering
+- Vitest suite (`npm test`) and GitHub Actions CI running typecheck, lint, tests and build
 
 **Data model decisions:**
-- Fixed-menu restaurants (Chick-fil-A, McDonald's) use `type: "fixed"` with a flat list of `items`
-- Build-your-own restaurants (Chipotle) use `type: "build-your-own"` with individual `components` (protein, rice, beans, toppings, salsa) and a `slots` section describing how a meal is constructed
+- Fixed-menu restaurants use `type: "fixed"` with a flat list of `items`
+- Build-your-own restaurants use `type: "build-your-own"` with individual `components` and a `slots` section describing how a meal is constructed
 - This distinction matters for the optimizer: fixed restaurants rank items, build-your-own restaurants find the best combination of ingredients
+- Coupled slots use `count_from` — picking "Bowl" at Panda Express fixes the entree slot to 1 pick, "Plate" to 2
 
-**What's next:**
-1. Build the NLP keyword parser — takes a plain English query like "high protein low carb" and extracts the user's goals
-2. Build the optimizer/scoring logic — ranks fixed items or builds an optimal combination based on those goals
-3. Build the search UI on the homepage to connect it all together
+**Why `lib/mealGrammar.ts` exists:**
+The optimizer scores nutrition, which judges how *good* an order is but not whether it's an order a human would place. Left alone it returned things like "Egg White Grill + Icedream Cone + Grilled Chicken Sandwich" (breakfast and lunch cannot be bought at the same time) and five near-identical stacks of mains with no traditional main-plus-side anywhere. The grammar adds the missing concept of an order's *shape*, derived from the `category` column:
+- **Hard rules** — same daypart, at least one main, caps on sides/desserts, a portion-weight ceiling. Only things that are impossible or that nobody orders.
+- **Shape classification** — `classic` / `single` / `stack`, so results deliberately span several kinds of order instead of restating one.
+- Stacking mains is **allowed on purpose**: two sandwiches is a real order, and excluding it would be the algorithm imposing taste.
+
+Known limitation: `category` conflates daypart (`breakfast`), role (`side`) and form factor (`taco`), so role/daypart/weight are derived in code rather than stored. They should become real columns when the data layer is rebuilt for dynamic ingestion.
+
+**What's next** (from the project goals doc):
+1. **Per-restaurant pages** — `/restaurant/[slug]` routes reached from the homepage, each with quick high-protein / low-carb / low-fat sections
+2. **Dynamic menu ingestion** — pre-populated backend plus a fallback that fetches restaurants not yet in the database, with freshness/provenance tracking. Note this needs a hosted database: `better-sqlite3` writes to `process.cwd()`, which won't work on a read-only serverless filesystem
+3. **Pricing** — real cost data, price constraints ("under $10") as distinct from price preferences ("cheaper"), and cheaper options mixed into the result set as another stratum

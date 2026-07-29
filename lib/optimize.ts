@@ -1,5 +1,12 @@
 import type { MenuItem, Slot, ComponentOption } from "./db";
 import type { Goal, NutrientKey } from "./parseQuery";
+import {
+  shapeOf,
+  mainSignature,
+  MEAL_SHAPES,
+  SHAPE_LABELS,
+  type MealShape,
+} from "./mealGrammar";
 
 // ── Shared scoring helpers ───────────────────────────────────────────────────
 
@@ -43,27 +50,14 @@ function priceScores(prices: number[]): number[] {
   return prices.map((p) => (range === 0 ? 0.5 : 1 - (p - min) / range));
 }
 
-// Yield every size-k combination of items from arr.
-// For 38 items and size=3 this produces 8,436 combinations — fast enough for
-// a synchronous API route.
-function* combinations<T>(arr: T[], size: number): Generator<T[]> {
-  if (size === 1) {
-    for (const item of arr) yield [item];
-    return;
-  }
-  for (let i = 0; i <= arr.length - size; i++) {
-    for (const rest of combinations(arr.slice(i + 1), size - 1)) {
-      yield [arr[i], ...rest];
-    }
-  }
-}
-
-// Same idea as combinations(), but allows picking the same item more than
-// once — e.g. "2 Texas Toast" at Raising Cane's, or "2 Orange Chicken" at
-// Panda Express. Used only for build-your-own component slots, where
-// ordering two of the same side is a real thing you can do; fixed-menu meal
-// combos (recommendMeal, via combinations() above) stay distinct-only since
-// "2 different burgers" and "2 of the same burger" are different UX asks.
+// Yield every size-k selection of items from arr, allowing the same item to be
+// picked more than once — "2 Texas Toast" at Raising Cane's, "2 Orange Chicken"
+// at Panda Express, two of the same sandwich at Chick-fil-A. Used both for
+// build-your-own component slots and for fixed-menu meal combinations.
+//
+// For a 38-item menu at size 3 that's 9,880 selections — fast enough for a
+// synchronous API route, and the meal-grammar check in recommendMeal discards
+// most of them before they're ever scored.
 function* combinationsWithRepetition<T>(arr: T[], size: number): Generator<T[]> {
   if (size === 0) {
     yield [];
@@ -118,6 +112,11 @@ export interface MealCombination {
   total_sodium_mg: number;
   total_price: number;
   score: number;
+  // What kind of order this is — see lib/mealGrammar.ts. Carried through to the
+  // UI so results can be labelled, and used to make sure the returned set spans
+  // several kinds of order rather than five takes on the same one.
+  shape: MealShape;
+  shape_label: string;
 }
 
 export function recommendMeal(
@@ -144,15 +143,28 @@ export function recommendMeal(
   const calWeight   = budgetPriority ? 0.20 : 0.30;
   const priceWeight = budgetPriority ? 0.35 : 0.10;
 
+  if (eligible.length === 0) return [];
+
   const results: MealCombination[] = [];
 
-  for (let size = 1; size <= Math.min(maxItems, eligible.length); size++) {
-    for (const combo of combinations(eligible, size)) {
+  // Repetition allowed, so "two of the same sandwich" is reachable. It used to
+  // be distinct-only, which meant a high-protein search could offer you two
+  // *different* sandwiches but never two of the one you actually want. The
+  // grammar check below is what keeps repetition from turning into nonsense
+  // like three fruit cups.
+  for (let size = 1; size <= maxItems; size++) {
+    for (const combo of combinationsWithRepetition(eligible, size)) {
       const totalCal = combo.reduce((sum, i) => sum + i.calories, 0);
 
       // Reject meals that overshoot by more than 25% or undershoot by more than 50%
       if (totalCal > calorieTarget * 1.25) continue;
       if (totalCal < calorieTarget * 0.5) continue;
+
+      // Is this an order a person could actually place? Cheaper to ask now than
+      // to score a combination we're going to throw away, so this both fixes
+      // the output and shrinks the search.
+      const shape = shapeOf(combo);
+      if (shape === null) continue;
 
       const avgGoalScore =
         combo.reduce((s, i) => s + i.score, 0) / combo.length;
@@ -176,11 +188,98 @@ export function recommendMeal(
         total_sodium_mg: combo.reduce((s, i) => s + i.sodium_mg, 0),
         total_price: totalPrice,
         score: goalWeight * avgGoalScore + calWeight * calProximity + priceWeight * avgPriceScore,
+        shape,
+        shape_label: SHAPE_LABELS[shape],
       });
     }
   }
 
-  return results.sort((a, b) => b.score - a.score).slice(0, 5);
+  return selectDiverseByShape(results, 5);
+}
+
+// How many results a single main item may appear in. At 1 the results get
+// artificially thin — "Double Quarter Pounder on its own" and "Double Quarter
+// Pounder with fries" are genuinely different orders and both worth offering.
+// At 5 one strong item fills the whole list, which is the defect this exists to
+// prevent. 2 keeps both.
+const MAX_MAIN_APPEARANCES = 2;
+
+// How many results may share a shape. Without this, guaranteeing one of each
+// shape isn't enough: the fill pass runs on score alone, and for a high-protein
+// search stacks outscore everything, so three of five results came back as
+// "Double up" and the range collapsed again.
+const MAX_PER_SHAPE = 2;
+
+// Picking the final results is a separate problem from scoring them.
+//
+// Taking the top 5 by score alone gives five near-identical orders: whatever
+// item best serves the goal appears in nearly all of them, and because sides
+// rarely help a goal on their own, every result ends up being mains only. The
+// user is shown one idea five times.
+//
+// So instead: guarantee the best of each *kind* of order first — a classic
+// main-and-side, a single item, a protein stack — then fill any remaining slots
+// by score. Nobody gets excluded for having unusual taste, and nobody has to
+// scroll past four variations of the same sandwich to find a different idea.
+function selectDiverseByShape(
+  candidates: MealCombination[],
+  limit: number
+): MealCombination[] {
+  const byScore = [...candidates].sort((a, b) => b.score - a.score);
+
+  const chosen: MealCombination[] = [];
+  const taken = new Set<MealCombination>();
+  const mainAppearances = new Map<string, number>();
+  const shapeCounts = new Map<MealShape, number>();
+
+  const isAvailable = (combo: MealCombination) =>
+    !taken.has(combo) &&
+    (shapeCounts.get(combo.shape) ?? 0) < MAX_PER_SHAPE &&
+    mainSignature(combo.items).every(
+      (name) => (mainAppearances.get(name) ?? 0) < MAX_MAIN_APPEARANCES
+    );
+
+  const take = (combo: MealCombination) => {
+    chosen.push(combo);
+    taken.add(combo);
+    shapeCounts.set(combo.shape, (shapeCounts.get(combo.shape) ?? 0) + 1);
+    for (const name of mainSignature(combo.items)) {
+      mainAppearances.set(name, (mainAppearances.get(name) ?? 0) + 1);
+    }
+  };
+
+  // Pass 1 — one of each shape. `find` walks in score order, so this takes the
+  // best still-available candidate of that shape.
+  for (const shape of MEAL_SHAPES) {
+    if (chosen.length >= limit) break;
+    const pick = byScore.find((c) => c.shape === shape && isAvailable(c));
+    if (pick) take(pick);
+  }
+
+  // Pass 2 — fill the rest on merit, still respecting the shape cap. This is
+  // what covers a shape having no decent candidate: rather than returning a
+  // short list, the slot goes to the next best order of another shape.
+  for (const combo of byScore) {
+    if (chosen.length >= limit) break;
+    if (!isAvailable(combo)) continue;
+    take(combo);
+  }
+
+  // Pass 3 — a short list is worse than a repetitive one. If some menu or
+  // calorie target only admits one or two shapes, the cap above would hand back
+  // two results; drop it and fill up on score, keeping only the rule that stops
+  // one item owning the whole list.
+  for (const combo of byScore) {
+    if (chosen.length >= limit) break;
+    if (taken.has(combo)) continue;
+    const signature = mainSignature(combo.items);
+    if (signature.some((name) => (mainAppearances.get(name) ?? 0) >= MAX_MAIN_APPEARANCES)) {
+      continue;
+    }
+    take(combo);
+  }
+
+  return chosen.sort((a, b) => b.score - a.score);
 }
 
 // ── Build-your-own recommendation (Chipotle) ─────────────────────────────────
@@ -189,7 +288,7 @@ export function recommendMeal(
 // "protein" greedily spend the whole calorie budget before later slots like
 // "rice" or "beans" ever got a say), we enumerate full candidate builds —
 // one choice per slot, combined — and score each build as a whole. This is
-// the same idea as recommendMeal()'s combinations() search above, just
+// the same idea as recommendMeal()'s combination search above, just
 // extended across multiple slots instead of a single flat item list.
 
 export interface SlotSelection {
