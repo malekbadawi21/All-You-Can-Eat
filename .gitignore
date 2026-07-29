@@ -33,6 +33,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# generated database file — seeded at startup, not source code
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
 # vercel
 .vercel
 
