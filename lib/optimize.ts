@@ -38,6 +38,39 @@ function scoreItems(items: MenuItem[], goals: Goal[]): RankedItem[] {
   });
 }
 
+// ── Calorie window ───────────────────────────────────────────────────────────
+//
+// How far from a stated calorie target an order may land. Shared by both
+// optimizers on purpose: fixed menus enforced this from the start, while
+// build-your-own restaurants had only a soft scoring nudge, and that nudge
+// clamps to zero once you are more than double the target — so overshooting by
+// 1400 calories scored exactly the same as overshooting by 600, and "around 600
+// calories" at Raising Cane's came back with a 1970 calorie order.
+
+const MAX_OVERSHOOT = 1.25;
+const MAX_UNDERSHOOT = 0.5;
+
+function withinCalorieWindow(calories: number, target: number): boolean {
+  return calories <= target * MAX_OVERSHOOT && calories >= target * MAX_UNDERSHOOT;
+}
+
+// A ceiling for orders where the user named no calorie target. Not a target —
+// nothing is scored against it — purely a bound, so "high protein chipotle"
+// can't answer with a 2,095 calorie burrito carrying five toppings and three
+// salsas. Deliberately generous: it only has to exclude the absurd.
+const MAX_UNTARGETED_CALORIES = 1400;
+
+// Calories held back from the core slots so condiments have somewhere to live.
+// Without this, the joint search over base/protein/rice/beans spends the entire
+// budget — it is scored on calorie proximity, so landing exactly on target is
+// what it is trying to do — and the toppings and salsa phase that runs
+// afterwards inherits nothing. A Chipotle order with no salsa is not an order.
+const CONDIMENT_RESERVE = 150;
+
+// Most picks any one condiment slot may take. Three salsas at once is not a
+// thing people do, and neither is every topping on the board.
+const MAX_CONDIMENT_PICKS = 3;
+
 // Normalize prices across a set of items so cheaper items score higher (0–1).
 // Returns a parallel array of price scores.
 function priceScores(prices: number[]): number[] {
@@ -156,9 +189,7 @@ export function recommendMeal(
     for (const combo of combinationsWithRepetition(eligible, size)) {
       const totalCal = combo.reduce((sum, i) => sum + i.calories, 0);
 
-      // Reject meals that overshoot by more than 25% or undershoot by more than 50%
-      if (totalCal > calorieTarget * 1.25) continue;
-      if (totalCal < calorieTarget * 0.5) continue;
+      if (!withinCalorieWindow(totalCal, calorieTarget)) continue;
 
       // Is this an order a person could actually place? Cheaper to ask now than
       // to score a combination we're going to throw away, so this both fixes
@@ -457,12 +488,76 @@ function decideOptionalManySlot(
   let caloriesUsed = 0;
   const selected: typeof eligible = [];
   for (const option of eligible) {
+    // A count cap as well as a calorie one. Calories alone let this run away
+    // whenever the budget was generous: nearly every topping has *some*
+    // protein, so nearly every topping beat skipping, and a high-protein
+    // Chipotle order came back holding cheese, queso, sour cream, guacamole and
+    // fajita veggies at once — plus all three salsas. Nobody orders that.
+    if (selected.length >= MAX_CONDIMENT_PICKS) break;
     if (caloriesUsed + option.calories > calorieBudget) continue;
     selected.push(option);
     caloriesUsed += option.calories;
   }
 
   return { selection: { slot_name, required, pick, selected }, caloriesUsed };
+}
+
+// Narrow candidate builds to those with a defensible calorie total, before any
+// goal scoring gets a say.
+//
+// This has to cope with targets a restaurant simply cannot hit. Raising Cane's
+// has no order under about 830 calories — the smallest combo is 550 and it
+// forces two sides — so "around 600 calories" has no valid answer. Returning
+// nothing would be unhelpful and returning the highest-protein order on the
+// menu (which is what used to happen: a 1970 calorie Caniac Combo) is worse. So
+// when the window is empty, fall back to whatever comes closest, and let goal
+// scoring choose among those.
+function restrictToCalorieRange(
+  builds: ComponentOption[][][],
+  range: { min: number; max: number }
+): ComponentOption[][][] {
+  if (builds.length === 0) return builds;
+
+  const caloriesOf = (build: ComponentOption[][]) =>
+    build.flat().reduce((sum, o) => sum + o.calories, 0);
+
+  const inRange = builds.filter((b) => {
+    const calories = caloriesOf(b);
+    return calories >= range.min && calories <= range.max;
+  });
+  if (inRange.length > 0) return inRange;
+
+  // Nothing fits. Rank by how far outside the range each build sits and keep
+  // the near-misses, so goal scoring still gets a choice among them.
+  const distanceOutside = (b: ComponentOption[][]) => {
+    const calories = caloriesOf(b);
+    if (calories < range.min) return range.min - calories;
+    if (calories > range.max) return calories - range.max;
+    return 0;
+  };
+  const closest = Math.min(...builds.map(distanceOutside));
+  return builds.filter((b) => distanceOutside(b) <= closest * 1.1 + 1);
+}
+
+// The calorie range the *core* slots must land in, given the user's target.
+//
+// The floor is the full target's floor, not a reduced one: condiments are
+// allowed to contribute nothing at all (on a low-fat search, adding zero fat
+// beats every topping, so none qualify), and if that happens the core slots are
+// the entire order. Letting them sit at half of a reduced target produced a
+// 440 calorie answer to a 900 calorie question.
+//
+// The ceiling leaves CONDIMENT_RESERVE of headroom, so that a core build at the
+// top of its range plus a full complement of condiments still lands inside the
+// window the user asked for.
+function coreCalorieRange(target: number | undefined): { min: number; max: number } {
+  if (target === undefined) {
+    return { min: 0, max: MAX_UNTARGETED_CALORIES - CONDIMENT_RESERVE };
+  }
+  return {
+    min: target * MAX_UNDERSHOOT,
+    max: Math.max(target * MAX_UNDERSHOOT, target * MAX_OVERSHOOT - CONDIMENT_RESERVE),
+  };
 }
 
 export function buildOrder(
@@ -506,12 +601,21 @@ export function buildOrder(
     );
   }
 
+  // Hold calories back from the core slots so the condiment phase below has
+  // something to spend. The joint search is scored on landing *on* the target,
+  // so without this it consumes the lot and salsa never makes it in.
+  const coreTarget = calorieTarget
+    ? Math.max(calorieTarget * 0.5, calorieTarget - CONDIMENT_RESERVE)
+    : undefined;
+
+  builds = restrictToCalorieRange(builds, coreCalorieRange(calorieTarget));
+
   const totals = builds.map(totalsFor);
 
   const goalScores = goalScoresFor(totals, goals);
   const pScores = priceScores(totals.map((t) => t.price));
-  const calScores = calorieTarget
-    ? totals.map((t) => Math.max(0, 1 - Math.abs(t.calories - calorieTarget) / calorieTarget))
+  const calScores = coreTarget
+    ? totals.map((t) => Math.max(0, 1 - Math.abs(t.calories - coreTarget) / coreTarget))
     : null;
 
   // Same weighting scheme as recommendMeal(): calorie proximity only enters
@@ -519,6 +623,10 @@ export function buildOrder(
   const goalWeight  = calorieTarget ? (budgetPriority ? 0.45 : 0.60) : (budgetPriority ? 0.65 : 0.90);
   const calWeight   = calorieTarget ? (budgetPriority ? 0.20 : 0.30) : 0;
   const priceWeight = calorieTarget ? (budgetPriority ? 0.35 : 0.10) : (budgetPriority ? 0.35 : 0.10);
+
+  // Can happen if a restaurant's coupling rules admit nothing, and indexing
+  // into an empty build list below would throw rather than degrade.
+  if (builds.length === 0) return [];
 
   let bestIdx = 0;
   let bestScore = -Infinity;
@@ -541,12 +649,18 @@ export function buildOrder(
     selected: winningBuild[i].map((o) => ({ ...o, score: bestScore })),
   }));
 
-  // With no calorie target, there's nothing to budget against — condiments
-  // are included purely on goal fit, same as before. With a target, only
-  // whatever's left after the core slots is available for toppings/salsa.
+  // What's left for toppings and salsa. With a target that's the full target
+  // minus what the core slots actually used — and because the core slots aimed
+  // at coreTarget rather than the full one, roughly CONDIMENT_RESERVE survives
+  // to here by construction.
+  //
+  // With no target this used to be Infinity, which is how an untargeted search
+  // ended up holding five toppings and three salsas: every option beat adding
+  // nothing, and nothing ever ran out. Now it gets the same reserve, bounded by
+  // the untargeted ceiling.
   let remainingBudget = calorieTarget
     ? Math.max(0, calorieTarget - totals[bestIdx].calories)
-    : Infinity;
+    : Math.max(0, Math.min(CONDIMENT_RESERVE, MAX_UNTARGETED_CALORIES - totals[bestIdx].calories));
 
   const deferredResult: SlotSelection[] = [];
   for (const slot of deferredSlots) {
