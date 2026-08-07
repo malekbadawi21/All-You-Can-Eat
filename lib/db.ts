@@ -178,7 +178,38 @@ function initSchema(db: Database.Database): void {
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
 // Nutrition from official restaurant nutrition pages.
-// Prices are approximate US averages and vary by location.
+//
+// PRICES — US national averages, audited August 2026.
+//
+// Read these as estimates, not quotes. Fast food pricing varies by market by
+// well over a dollar (Chipotle chicken bowls range roughly $7.81–$12.70 across
+// locations), and airport and delivery menus are higher again. Anything the UI
+// says about price should be presented as approximate.
+//
+// The audit corrected three things that were changing what the optimizer
+// recommended, not just what it displayed:
+//
+//   1. Chipotle bases were priced unequally — Salad $1.00 under Bowl. Bowls,
+//      burritos, salads and tacos all cost the same for a given protein, and
+//      because Bowl and Salad are nutritionally identical here (both 0/0/0),
+//      that phantom dollar decided every tie. Chipotle results were *always*
+//      salads and a Bowl could never be recommended.
+//
+//   2. Chipotle proteins were all $0.00, so steak, barbacoa and carnitas looked
+//      like free upgrades over chicken. They carry real upcharges (+$1.89,
+//      +$1.89, +$0.74), which matters most for "cheapest" queries — exactly the
+//      queries where being wrong is most visible.
+//
+//   3. Panda and Cane's headline prices were $0.70–$2.70 high across the board.
+//
+// Sources disagree, especially for Raising Cane's, where combo prices differ by
+// about $1.40 between aggregators; those use midpoints. The Cane's Sandwich
+// Combo is an ESTIMATE — no source consulted published it.
+//
+// This is the shape of the problem the project's pricing goal has to solve
+// properly: prices need a source, a market and a fetch date stored alongside
+// them, so staleness is visible rather than assumed. Hardcoding a national
+// average is a placeholder for that, not a solution to it.
 
 // [name, category, cal, protein, fat, carbs, sodium, price]
 type ItemRow = [string, string, number, number, number, number, number, number];
@@ -334,11 +365,11 @@ function seedIfEmpty(db: Database.Database): void {
         pick: "1",
         // Price here is the full meal starting price (bowl/burrito/etc.)
         components: [
-          ["Bowl",                        0, 0, 0,  0,   0, 10.75],
-          ["Burrito (Flour Tortilla)",   320, 8, 9, 51, 680, 10.75],
-          ["Salad",                        0, 0, 0,  0,   0,  9.75],
-          ["Tacos — Soft Flour (3)",     270, 6, 6, 45, 480, 10.75],
-          ["Tacos — Crispy Corn (3)",    180, 3, 3, 33,  30, 10.75],
+          ["Bowl",                        0, 0, 0,  0,   0, 9.79],
+          ["Burrito (Flour Tortilla)",   320, 8, 9, 51, 680, 9.79],
+          ["Salad",                        0, 0, 0,  0,   0,  9.79],
+          ["Tacos — Soft Flour (3)",     270, 6, 6, 45, 480, 9.79],
+          ["Tacos — Crispy Corn (3)",    180, 3, 3, 33,  30, 9.79],
         ],
       },
       {
@@ -349,15 +380,15 @@ function seedIfEmpty(db: Database.Database): void {
         // Double portions cost extra and provide 2× nutrition.
         components: [
           ["Chicken",          180, 32,  7,  1, 310, 0.00],
-          ["Steak",            150, 21,  7,  1, 290, 0.00],
-          ["Barbacoa",         165, 24,  7,  2, 460, 0.00],
-          ["Carnitas",         200, 23, 12,  0, 430, 0.00],
+          ["Steak",            150, 21,  7,  1, 290, 1.89],
+          ["Barbacoa",         165, 24,  7,  2, 460, 1.89],
+          ["Carnitas",         200, 23, 12,  0, 430, 0.74],
           ["Sofritas",         145,  8, 10,  9, 480, 0.00],
-          ["Chicken (Double)", 360, 64, 14,  2, 620, 4.50],
-          ["Steak (Double)",   300, 42, 14,  2, 580, 4.50],
-          ["Barbacoa (Double)",330, 48, 14,  4, 920, 4.50],
-          ["Carnitas (Double)",400, 46, 24,  0, 860, 4.50],
-          ["Sofritas (Double)",290, 16, 20, 18, 960, 4.50],
+          ["Chicken (Double)", 360, 64, 14,  2, 620, 4.60],
+          ["Steak (Double)",   300, 42, 14,  2, 580, 6.49],
+          ["Barbacoa (Double)",330, 48, 14,  4, 920, 6.49],
+          ["Carnitas (Double)",400, 46, 24,  0, 860, 5.34],
+          ["Sofritas (Double)",290, 16, 20, 18, 960, 4.60],
         ],
       },
       {
@@ -367,8 +398,8 @@ function seedIfEmpty(db: Database.Database): void {
         components: [
           ["White Rice",          210,  4, 4, 40, 400, 0.00],
           ["Brown Rice",          210,  5, 4, 40, 210, 0.00],
-          ["White Rice (Double)", 420,  8, 8, 80, 800, 0.50],
-          ["Brown Rice (Double)", 420, 10, 8, 80, 420, 0.50],
+          ["White Rice (Double)", 420,  8, 8, 80, 800, 0.00],
+          ["Brown Rice (Double)", 420, 10, 8, 80, 420, 0.00],
         ],
       },
       {
@@ -477,9 +508,9 @@ function seedIfEmpty(db: Database.Database): void {
         name: "base", required: 1, pick: "1",
         pickCounts: [{ entree: 1 }, { entree: 2 }, { entree: 3 }],
         components: [
-          ["Bowl (1 Entree + 1 Side)",         0, 0, 0, 0, 0,  9.99],
-          ["Plate (2 Entrees + 1 Side)",        0, 0, 0, 0, 0, 11.99],
-          ["Bigger Plate (3 Entrees + 1 Side)", 0, 0, 0, 0, 0, 13.99],
+          ["Bowl (1 Entree + 1 Side)",         0, 0, 0, 0, 0,  9.30],
+          ["Plate (2 Entrees + 1 Side)",        0, 0, 0, 0, 0, 11.10],
+          ["Bigger Plate (3 Entrees + 1 Side)", 0, 0, 0, 0, 0, 12.90],
         ],
       },
       {
@@ -558,10 +589,10 @@ function seedIfEmpty(db: Database.Database): void {
         // separately below, count fixed per combo via pickCounts.
         pickCounts: [{ side: 2 }, { side: 3 }, { side: 3 }, { side: 1 }],
         components: [
-          withSauce(["3 Finger Combo",         360, 36, 18, 15,  870, 11.99], 1),
-          withSauce(["Box Combo (4 Fingers)",  480, 48, 24, 20, 1160, 14.99], 1),
-          withSauce(["Caniac Combo (6 Fingers)",720, 72, 36, 30, 1740, 18.99], 2),
-          withSauce(["Sandwich Combo",         530, 29, 18, 56,  900, 12.99], 1),
+          withSauce(["3 Finger Combo",         360, 36, 18, 15,  870, 10.29], 1),
+          withSauce(["Box Combo (4 Fingers)",  480, 48, 24, 20, 1160, 12.29], 1),
+          withSauce(["Caniac Combo (6 Fingers)",720, 72, 36, 30, 1740, 16.49], 2),
+          withSauce(["Sandwich Combo",         530, 29, 18, 56,  900, 11.49], 1),
         ],
       },
       {
@@ -578,7 +609,7 @@ function seedIfEmpty(db: Database.Database): void {
         // Extra chicken = costs money; anything else is just a free sub.
         name: "extra", required: 0, pick: "many",
         components: [
-          ["Extra Chicken Finger", 120, 12, 6, 5, 290, 2.49],
+          ["Extra Chicken Finger", 120, 12, 6, 5, 290, 1.99],
         ],
       },
     ];

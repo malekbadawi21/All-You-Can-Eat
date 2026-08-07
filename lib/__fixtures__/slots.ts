@@ -16,11 +16,11 @@ export const CHIPOTLE_SLOTS: Slot[] = [
     required: true,
     pick: "1",
     options: [
-      { id: 1, name: "Bowl", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 10.75 },
-      { id: 2, name: "Burrito (Flour Tortilla)", calories: 320, protein_g: 8, fat_g: 9, carbs_g: 51, sodium_mg: 680, price: 10.75 },
-      { id: 3, name: "Salad", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 9.75 },
-      { id: 4, name: "Tacos — Soft Flour (3)", calories: 270, protein_g: 6, fat_g: 6, carbs_g: 45, sodium_mg: 480, price: 10.75 },
-      { id: 5, name: "Tacos — Crispy Corn (3)", calories: 180, protein_g: 3, fat_g: 3, carbs_g: 33, sodium_mg: 30, price: 10.75 },
+      { id: 1, name: "Bowl", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 9.79 },
+      { id: 2, name: "Burrito (Flour Tortilla)", calories: 320, protein_g: 8, fat_g: 9, carbs_g: 51, sodium_mg: 680, price: 9.79 },
+      { id: 3, name: "Salad", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 9.79 },
+      { id: 4, name: "Tacos — Soft Flour (3)", calories: 270, protein_g: 6, fat_g: 6, carbs_g: 45, sodium_mg: 480, price: 9.79 },
+      { id: 5, name: "Tacos — Crispy Corn (3)", calories: 180, protein_g: 3, fat_g: 3, carbs_g: 33, sodium_mg: 30, price: 9.79 },
     ],
   },
   {
@@ -29,15 +29,15 @@ export const CHIPOTLE_SLOTS: Slot[] = [
     pick: "1",
     options: [
       { id: 6, name: "Chicken", calories: 180, protein_g: 32, fat_g: 7, carbs_g: 1, sodium_mg: 310, price: 0.00 },
-      { id: 7, name: "Steak", calories: 150, protein_g: 21, fat_g: 7, carbs_g: 1, sodium_mg: 290, price: 0.00 },
-      { id: 8, name: "Barbacoa", calories: 165, protein_g: 24, fat_g: 7, carbs_g: 2, sodium_mg: 460, price: 0.00 },
-      { id: 9, name: "Carnitas", calories: 200, protein_g: 23, fat_g: 12, carbs_g: 0, sodium_mg: 430, price: 0.00 },
+      { id: 7, name: "Steak", calories: 150, protein_g: 21, fat_g: 7, carbs_g: 1, sodium_mg: 290, price: 1.89 },
+      { id: 8, name: "Barbacoa", calories: 165, protein_g: 24, fat_g: 7, carbs_g: 2, sodium_mg: 460, price: 1.89 },
+      { id: 9, name: "Carnitas", calories: 200, protein_g: 23, fat_g: 12, carbs_g: 0, sodium_mg: 430, price: 0.74 },
       { id: 10, name: "Sofritas", calories: 145, protein_g: 8, fat_g: 10, carbs_g: 9, sodium_mg: 480, price: 0.00 },
-      { id: 11, name: "Chicken (Double)", calories: 360, protein_g: 64, fat_g: 14, carbs_g: 2, sodium_mg: 620, price: 4.50 },
-      { id: 12, name: "Steak (Double)", calories: 300, protein_g: 42, fat_g: 14, carbs_g: 2, sodium_mg: 580, price: 4.50 },
-      { id: 13, name: "Barbacoa (Double)", calories: 330, protein_g: 48, fat_g: 14, carbs_g: 4, sodium_mg: 920, price: 4.50 },
-      { id: 14, name: "Carnitas (Double)", calories: 400, protein_g: 46, fat_g: 24, carbs_g: 0, sodium_mg: 860, price: 4.50 },
-      { id: 15, name: "Sofritas (Double)", calories: 290, protein_g: 16, fat_g: 20, carbs_g: 18, sodium_mg: 960, price: 4.50 },
+      { id: 11, name: "Chicken (Double)", calories: 360, protein_g: 64, fat_g: 14, carbs_g: 2, sodium_mg: 620, price: 4.60 },
+      { id: 12, name: "Steak (Double)", calories: 300, protein_g: 42, fat_g: 14, carbs_g: 2, sodium_mg: 580, price: 6.49 },
+      { id: 13, name: "Barbacoa (Double)", calories: 330, protein_g: 48, fat_g: 14, carbs_g: 4, sodium_mg: 920, price: 6.49 },
+      { id: 14, name: "Carnitas (Double)", calories: 400, protein_g: 46, fat_g: 24, carbs_g: 0, sodium_mg: 860, price: 5.34 },
+      { id: 15, name: "Sofritas (Double)", calories: 290, protein_g: 16, fat_g: 20, carbs_g: 18, sodium_mg: 960, price: 4.60 },
     ],
   },
   {
@@ -47,8 +47,8 @@ export const CHIPOTLE_SLOTS: Slot[] = [
     options: [
       { id: 16, name: "White Rice", calories: 210, protein_g: 4, fat_g: 4, carbs_g: 40, sodium_mg: 400, price: 0.00 },
       { id: 17, name: "Brown Rice", calories: 210, protein_g: 5, fat_g: 4, carbs_g: 40, sodium_mg: 210, price: 0.00 },
-      { id: 18, name: "White Rice (Double)", calories: 420, protein_g: 8, fat_g: 8, carbs_g: 80, sodium_mg: 800, price: 0.50 },
-      { id: 19, name: "Brown Rice (Double)", calories: 420, protein_g: 10, fat_g: 8, carbs_g: 80, sodium_mg: 420, price: 0.50 },
+      { id: 18, name: "White Rice (Double)", calories: 420, protein_g: 8, fat_g: 8, carbs_g: 80, sodium_mg: 800, price: 0.00 },
+      { id: 19, name: "Brown Rice (Double)", calories: 420, protein_g: 10, fat_g: 8, carbs_g: 80, sodium_mg: 420, price: 0.00 },
     ],
   },
   {
@@ -94,9 +94,9 @@ export const PANDA_SLOTS: Slot[] = [
     required: true,
     pick: "1",
     options: [
-      { id: 34, name: "Bowl (1 Entree + 1 Side)", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 9.99, pick_counts: {"entree": 1} },
-      { id: 35, name: "Plate (2 Entrees + 1 Side)", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 11.99, pick_counts: {"entree": 2} },
-      { id: 36, name: "Bigger Plate (3 Entrees + 1 Side)", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 13.99, pick_counts: {"entree": 3} },
+      { id: 34, name: "Bowl (1 Entree + 1 Side)", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 9.30, pick_counts: {"entree": 1} },
+      { id: 35, name: "Plate (2 Entrees + 1 Side)", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 11.10, pick_counts: {"entree": 2} },
+      { id: 36, name: "Bigger Plate (3 Entrees + 1 Side)", calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0, sodium_mg: 0, price: 12.90, pick_counts: {"entree": 3} },
     ],
   },
   {
@@ -138,10 +138,10 @@ export const CANES_SLOTS: Slot[] = [
     required: true,
     pick: "1",
     options: [
-      { id: 53, name: "3 Finger Combo", calories: 550, protein_g: 36, fat_g: 38, carbs_g: 19, sodium_mg: 1210, price: 11.99, pick_counts: {"side": 2} },
-      { id: 54, name: "Box Combo (4 Fingers)", calories: 670, protein_g: 48, fat_g: 44, carbs_g: 24, sodium_mg: 1500, price: 14.99, pick_counts: {"side": 3} },
-      { id: 55, name: "Caniac Combo (6 Fingers)", calories: 1100, protein_g: 72, fat_g: 76, carbs_g: 38, sodium_mg: 2420, price: 18.99, pick_counts: {"side": 3} },
-      { id: 56, name: "Sandwich Combo", calories: 720, protein_g: 29, fat_g: 38, carbs_g: 60, sodium_mg: 1240, price: 12.99, pick_counts: {"side": 1} },
+      { id: 53, name: "3 Finger Combo", calories: 550, protein_g: 36, fat_g: 38, carbs_g: 19, sodium_mg: 1210, price: 10.29, pick_counts: {"side": 2} },
+      { id: 54, name: "Box Combo (4 Fingers)", calories: 670, protein_g: 48, fat_g: 44, carbs_g: 24, sodium_mg: 1500, price: 12.29, pick_counts: {"side": 3} },
+      { id: 55, name: "Caniac Combo (6 Fingers)", calories: 1100, protein_g: 72, fat_g: 76, carbs_g: 38, sodium_mg: 2420, price: 16.49, pick_counts: {"side": 3} },
+      { id: 56, name: "Sandwich Combo", calories: 720, protein_g: 29, fat_g: 38, carbs_g: 60, sodium_mg: 1240, price: 11.49, pick_counts: {"side": 1} },
     ],
   },
   {
@@ -160,7 +160,7 @@ export const CANES_SLOTS: Slot[] = [
     required: false,
     pick: "many",
     options: [
-      { id: 60, name: "Extra Chicken Finger", calories: 120, protein_g: 12, fat_g: 6, carbs_g: 5, sodium_mg: 290, price: 2.49 },
+      { id: 60, name: "Extra Chicken Finger", calories: 120, protein_g: 12, fat_g: 6, carbs_g: 5, sodium_mg: 290, price: 1.99 },
     ],
   },
 ];
