@@ -13,27 +13,14 @@ import {
   Plus,
 } from "lucide-react";
 import GoalChip from "./components/GoalChip";
-import ChipotleResults, { ChipotleOption } from "./components/ChipotleResults";
-import FixedResults, { RankedItem, MealCombo } from "./components/FixedResults";
+import OrderResults from "./components/OrderResults";
+import type { SearchResponse, SearchError } from "@/lib/searchResult";
 
-interface Goal {
-  nutrient: string;
-  direction: "high" | "low";
-}
-
-interface BaseResult {
-  restaurant: string;
-  query: string;
-  goals: Goal[];
-  budget_priority: boolean;
-  calorie_target?: number;
-}
-
-type SearchResult =
-  | (BaseResult & { options: ChipotleOption[] })
-  | (BaseResult & { recommendations: MealCombo[] })
-  | (BaseResult & { top_results: RankedItem[] })
-  | { error: string };
+// The server's own failures (SearchError) carry a machine-readable code. A
+// network failure never reaches the server, so it has no code to carry — it is
+// the client's own error state, not one of the API's.
+type ClientError = { error: string };
+type SearchResult = SearchResponse | SearchError | ClientError;
 
 const RESTAURANT_COLORS: Record<string, string> = {
   "Chick-fil-A":   "#DD0031",
@@ -104,7 +91,7 @@ export default function Home() {
 
   const accentColor =
     result && "restaurant" in result
-      ? (RESTAURANT_COLORS[result.restaurant] ?? "#059669")
+      ? (RESTAURANT_COLORS[result.restaurant.name] ?? "#059669")
       : "#059669";
 
   const hasResults = result && !loading;
@@ -266,7 +253,7 @@ export default function Home() {
                     Top picks at
                   </p>
                   <h2 className="text-2xl font-extrabold text-stone-900 leading-none">
-                    {result.restaurant}
+                    {result.restaurant.name}
                   </h2>
                   {result.calorie_target && (
                     <p className="text-sm text-stone-500 mt-1">Around {result.calorie_target} calories</p>
@@ -289,17 +276,7 @@ export default function Home() {
                 </div>
               )}
 
-              {"options" in result && (
-                <ChipotleResults options={result.options} accentColor={accentColor} />
-              )}
-
-              {("recommendations" in result || "top_results" in result) && (
-                <FixedResults
-                  recommendations={"recommendations" in result ? result.recommendations : undefined}
-                  topResults={"top_results" in result ? result.top_results : undefined}
-                  accentColor={accentColor}
-                />
-              )}
+              <OrderResults results={result.results} accentColor={accentColor} />
             </div>
           )}
         </section>

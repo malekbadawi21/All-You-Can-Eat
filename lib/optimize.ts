@@ -160,15 +160,18 @@ export interface MealCombination {
 export function recommendMeal(
   items: MenuItem[],
   goals: Goal[],
-  calorieTarget: number,
+  calorieTarget?: number,
   maxItems: number = 3,
   budgetPriority: boolean = false
 ): MealCombination[] {
   const scored = scoreItems(items, goals);
 
-  // Only consider items that could fit within the calorie budget.
+  // Only consider items that could fit within the calorie budget. With no
+  // target stated, the ceiling is the same generous bound build-your-own
+  // restaurants use — enough to exclude the absurd, not to steer the result.
+  const ceiling = calorieTarget ? calorieTarget * 1.15 : MAX_UNTARGETED_CALORIES;
   const eligible = scored.filter(
-    (item) => item.calories > 0 && item.calories <= calorieTarget * 1.15
+    (item) => item.calories > 0 && item.calories <= ceiling
   );
 
   // Pre-compute price scores over the eligible set for combo scoring below.
@@ -177,8 +180,10 @@ export function recommendMeal(
     eligible.map((item, idx) => [item.id, eligiblePriceScores[idx]])
   );
 
-  const goalWeight  = budgetPriority ? 0.45 : 0.60;
-  const calWeight   = budgetPriority ? 0.20 : 0.30;
+  // Identical to buildOrders(): calorie proximity only enters the score when a
+  // target was actually given, and the goal takes over the weight it vacates.
+  const goalWeight  = calorieTarget ? (budgetPriority ? 0.45 : 0.60) : (budgetPriority ? 0.65 : 0.90);
+  const calWeight   = calorieTarget ? (budgetPriority ? 0.20 : 0.30) : 0;
   const priceWeight = budgetPriority ? 0.35 : 0.10;
 
   if (eligible.length === 0) return [];
@@ -194,7 +199,11 @@ export function recommendMeal(
     for (const combo of combinationsWithRepetition(eligible, size)) {
       const totalCal = combo.reduce((sum, i) => sum + i.calories, 0);
 
-      if (!withinCalorieWindow(totalCal, calorieTarget)) continue;
+      if (calorieTarget) {
+        if (!withinCalorieWindow(totalCal, calorieTarget)) continue;
+      } else if (totalCal > MAX_UNTARGETED_CALORIES) {
+        continue;
+      }
 
       // Is this an order a person could actually place? Cheaper to ask now than
       // to score a combination we're going to throw away, so this both fixes
@@ -204,10 +213,10 @@ export function recommendMeal(
 
       const avgGoalScore =
         combo.reduce((s, i) => s + i.score, 0) / combo.length;
-      const calProximity = Math.max(
-        0,
-        1 - Math.abs(totalCal - calorieTarget) / calorieTarget
-      );
+      // Zero-weighted when no target was given, so the value is irrelevant.
+      const calProximity = calorieTarget
+        ? Math.max(0, 1 - Math.abs(totalCal - calorieTarget) / calorieTarget)
+        : 0;
       // Average the price scores of the items in this combo.
       const avgPriceScore =
         combo.reduce((s, i) => s + (priceScoreMap.get(i.id) ?? 0.5), 0) /
