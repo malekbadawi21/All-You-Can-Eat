@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseQuery } from "@/lib/parseQuery";
 import { getRestaurant, getMenuItems, getSlots } from "@/lib/db";
-import { rankItems, recommendMeal, buildOrder, SlotSelection } from "@/lib/optimize";
+import { rankItems, recommendMeal, buildOrders } from "@/lib/optimize";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q");
@@ -63,46 +63,21 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // ── Build-your-own (Chipotle) ─────────────────────────────────────────────
+  // ── Build-your-own (Chipotle, Panda Express, Raising Cane's) ──────────────
   //
-  // Always return two options so users can make an informed choice:
-  //   "Best nutrition match" — scored primarily on the user's stated goals
-  //   "Best value"          — same goals, but price weighs in more heavily
+  // Returns up to three builds that satisfy the same query in different ways —
+  // see BUILD_STRATEGIES in lib/optimize.ts:
+  //   "Best match"   — the strongest answer to the question as asked
+  //   "Balanced"     — nearly as strong, with less repetition
+  //   "Most variety" — every component different, at some cost to the goal
   //
-  // If both builds are identical (same components selected), return only one.
+  // Which of these is "right" depends on the person, not the data. Repeating a
+  // component is often the smart play (three Texas Toasts cost 420 calories
+  // less than three fries for the same protein, which is what pays for a bigger
+  // box of chicken) — but it isn't what everyone wants to eat.
 
   const slots = getSlots(restaurant.id);
-
-  const nutritionOrder = buildOrder(slots, goals, calorieTarget ?? undefined, false);
-  const valueOrder     = buildOrder(slots, goals, calorieTarget ?? undefined, true);
-
-  // Two builds are "the same" if every slot selects the same option IDs.
-  const orderKey = (order: SlotSelection[]) =>
-    order
-      .flatMap((s) => s.selected.map((o) => o.id))
-      .sort((a, b) => a - b)
-      .join(",");
-
-  const orderPrice = (order: SlotSelection[]) =>
-    +order
-      .reduce((sum, slot) => sum + slot.selected.reduce((s, o) => s + o.price, 0), 0)
-      .toFixed(2);
-
-  const options = [
-    {
-      label: "Best nutritional match",
-      total_price: orderPrice(nutritionOrder),
-      order: nutritionOrder,
-    },
-  ];
-
-  if (orderKey(nutritionOrder) !== orderKey(valueOrder)) {
-    options.push({
-      label: "Best value",
-      total_price: orderPrice(valueOrder),
-      order: valueOrder,
-    });
-  }
+  const options = buildOrders(slots, goals, calorieTarget ?? undefined, budgetPriority);
 
   return NextResponse.json({
     restaurant: restaurant.name,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildOrder, type SlotSelection } from "./optimize";
+import { buildOrder, buildOrders, type SlotSelection } from "./optimize";
 import type { Goal } from "./parseQuery";
 import { CHIPOTLE_SLOTS, PANDA_SLOTS, CANES_SLOTS } from "./__fixtures__/slots";
 
@@ -114,6 +114,140 @@ describe("buildOrder — condiments", () => {
       calories,
       `untargeted order came to ${calories} cal: ${describeOrder(order)}`
     ).toBeLessThanOrEqual(1400);
+  });
+});
+
+describe("buildOrders — three ways to answer the same query", () => {
+  // How much of an order is made of different things: three Texas Toasts is
+  // 1/3, toast + fries + slaw is 3/3.
+  const varietyOf = (order: SlotSelection[]) => {
+    const picks = order.flatMap((s) => s.selected);
+    if (picks.length === 0) return 1;
+    return new Set(picks.map((o) => o.id)).size / picks.length;
+  };
+
+  it("returns three distinct options for each build-your-own restaurant", () => {
+    for (const [name, slots] of [
+      ["Chipotle", CHIPOTLE_SLOTS],
+      ["Panda Express", PANDA_SLOTS],
+      ["Raising Cane's", CANES_SLOTS],
+    ] as const) {
+      const options = buildOrders(slots, HIGH_PROTEIN, 1200, false);
+
+      expect(options.length, `${name} returned ${options.length} options`).toBe(3);
+      expect(new Set(options.map((o) => o.label)).size, `${name} labels`).toBe(3);
+
+      // Same query, genuinely different orders — not one build relabelled.
+      const signatures = options.map((o) =>
+        o.order
+          .flatMap((s) => s.selected.map((x) => x.id))
+          .sort((a, b) => a - b)
+          .join(",")
+      );
+      expect(new Set(signatures).size, `${name} returned duplicate builds`).toBe(3);
+    }
+  });
+
+  // Chipotle's slots are all pick-one, so no build can repeat a component and
+  // every build scored a perfect intra-order variety. The three "different"
+  // options came back as one order with the black beans swapped for pinto.
+  // Options have to differ substantially, not cosmetically.
+  it("does not pass off a one-component swap as a different option", () => {
+    const options = buildOrders(CHIPOTLE_SLOTS, HIGH_PROTEIN, 800, false);
+
+    for (let i = 0; i < options.length; i++) {
+      for (let j = i + 1; j < options.length; j++) {
+        const a = new Set(options[i].order.flatMap((s) => s.selected.map((o) => o.id)));
+        const b = new Set(options[j].order.flatMap((s) => s.selected.map((o) => o.id)));
+        const shared = [...a].filter((id) => b.has(id)).length;
+        const differing = a.size + b.size - 2 * shared;
+
+        expect(
+          differing,
+          `"${options[i].label}" and "${options[j].label}" differ by only ${differing} component(s):\n` +
+            `  ${describeOrder(options[i].order)}\n  ${describeOrder(options[j].order)}`
+        ).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
+  // Condiments added purely to reach a calorie target must not be the worst
+  // possible choice for the stated goal. Ranking those additions by calories
+  // alone put guacamole — the fattiest topping on the board — onto a low-fat
+  // order, because it closed the gap fastest.
+  it("does not reach a calorie target using the goal's worst ingredient", () => {
+    const options = buildOrders(CHIPOTLE_SLOTS, LOW_FAT, 900, false);
+    const toppings = CHIPOTLE_SLOTS.find((s) => s.slot_name === "toppings")!;
+    const fattiest = Math.max(...toppings.options.map((o) => o.fat_g));
+
+    for (const option of options) {
+      for (const picked of picksIn(option.order, "toppings")) {
+        expect(
+          picked.fat_g,
+          `"${option.label}" added ${picked.name} (${picked.fat_g}g fat) on a low-fat search: ${describeOrder(option.order)}`
+        ).toBeLessThan(fattiest);
+      }
+    }
+  });
+
+  it("orders the strategies from most optimized to most varied", () => {
+    const options = buildOrders(CANES_SLOTS, HIGH_PROTEIN, 1200, false);
+    expect(options.map((o) => o.strategy)).toEqual([
+      "optimized",
+      "balanced",
+      "variety",
+    ]);
+  });
+
+  it("gives the variety option more distinct components than the optimized one", () => {
+    const options = buildOrders(CANES_SLOTS, HIGH_PROTEIN, 1200, false);
+    const optimized = options.find((o) => o.strategy === "optimized")!;
+    const variety = options.find((o) => o.strategy === "variety")!;
+
+    expect(
+      varietyOf(variety.order),
+      `variety=${describeOrder(variety.order)} vs optimized=${describeOrder(optimized.order)}`
+    ).toBeGreaterThan(varietyOf(optimized.order));
+  });
+
+  // The whole point of keeping "optimized" separate: it is allowed to repeat a
+  // component, because repeating is often what hits the goal hardest.
+  it("lets the optimized option beat the variety option on the stated goal", () => {
+    const options = buildOrders(CANES_SLOTS, HIGH_PROTEIN, 1200, false);
+    const optimized = options.find((o) => o.strategy === "optimized")!;
+    const variety = options.find((o) => o.strategy === "variety")!;
+
+    expect(optimized.total_protein_g).toBeGreaterThanOrEqual(variety.total_protein_g);
+  });
+
+  // Every option is a real order, not just the first one.
+  it("holds all three options to the calorie window", () => {
+    const target = 1200;
+    for (const options of [
+      buildOrders(CHIPOTLE_SLOTS, HIGH_PROTEIN, target, false),
+      buildOrders(PANDA_SLOTS, HIGH_PROTEIN, target, false),
+      buildOrders(CANES_SLOTS, HIGH_PROTEIN, target, false),
+    ]) {
+      for (const option of options) {
+        expect(
+          option.total_calories,
+          `${option.label}: ${describeOrder(option.order)}`
+        ).toBeLessThanOrEqual(target * MAX_OVERSHOOT);
+        expect(
+          option.total_calories,
+          `${option.label}: ${describeOrder(option.order)}`
+        ).toBeGreaterThanOrEqual(target * MAX_UNDERSHOOT);
+      }
+    }
+  });
+
+  it("reports totals that match the order it returned", () => {
+    // Guards against the totals being computed from the core build only, which
+    // would silently omit condiment calories from what the user is shown.
+    for (const option of buildOrders(CHIPOTLE_SLOTS, HIGH_PROTEIN, 1000, false)) {
+      const actual = totalCalories(option.order);
+      expect(option.total_calories, `${option.label}`).toBe(actual);
+    }
   });
 });
 

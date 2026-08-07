@@ -67,9 +67,14 @@ const MAX_UNTARGETED_CALORIES = 1400;
 // afterwards inherits nothing. A Chipotle order with no salsa is not an order.
 const CONDIMENT_RESERVE = 150;
 
-// Most picks any one condiment slot may take. Three salsas at once is not a
-// thing people do, and neither is every topping on the board.
+// Most picks any one condiment slot may take. Every topping on the board is not
+// an order anyone places.
 const MAX_CONDIMENT_PICKS = 3;
+
+// A tighter cap on picks added purely to close a calorie gap, rather than
+// because they serve the goal. Two is enough to reach a target; three produced
+// orders carrying three different salsas at once.
+const MAX_FILLER_PICKS = 2;
 
 // Normalize prices across a set of items so cheaper items score higher (0–1).
 // Returns a parallel array of price scores.
@@ -455,7 +460,8 @@ function decideOptionalManySlot(
   slot: Slot,
   goals: Goal[],
   budgetPriority: boolean,
-  calorieBudget: number
+  calorieBudget: number,
+  caloriesNeeded: number = 0
 ): { selection: SlotSelection; caloriesUsed: number } {
   const { options, required, pick, slot_name } = slot;
 
@@ -473,31 +479,65 @@ function decideOptionalManySlot(
   const skipScore = scoreOption(ZERO_NUTRIENTS, goals, ranges);
   const maxPrice = Math.max(...options.map((o) => o.price), 0.01);
 
-  const eligible = options
+  const ranked = options
     .map((option) => {
       const goalScore = scoreOption(option, goals, ranges);
       const priceScore = 1 - option.price / maxPrice;
       const combined = budgetPriority ? 0.4 * goalScore + 0.6 * priceScore : goalScore;
       return { ...option, score: combined, goalScore };
     })
-    // Gate on goalScore even in budget mode — a free item that hurts your
-    // goals is still bad, regardless of price.
-    .filter((o) => o.goalScore > skipScore)
     .sort((a, b) => b.score - a.score);
 
+  // Items that actively serve the goal. Gate on goalScore even in budget mode —
+  // a free item that hurts your goals is still bad, regardless of price.
+  const helpful = ranked.filter((o) => o.goalScore > skipScore);
+
+  // Everything else, best-first. These only get used to close a gap to a stated
+  // calorie target, because on a "low X" goal *nothing* beats adding nothing —
+  // zero carbs is minimal carbs — so `helpful` is empty and the order has no
+  // way to grow. That answered "keto chipotle around 700 calories" with a
+  // 380 calorie order. Guacamole and sour cream on a keto bowl is not the
+  // optimizer being sloppy; it is what the order looks like.
+  // Ranked on calories *weighted by* how tolerable each is for the goal.
+  //
+  // Neither factor works alone. Ranking by goal fit put romaine lettuce (5
+  // calories) first and left a 300 calorie gap untouched. Ranking by calories
+  // alone put guacamole — 230 calories and 22g of fat — on a *low fat* order,
+  // closing the gap with the single worst thing on the board.
+  //
+  // The product prefers what is both calorie-dense and inoffensive: guacamole
+  // on a keto bowl, where its carbs are near zero, and queso rather than
+  // guacamole when fat is what you're avoiding.
+  const fillers = ranked
+    .filter((o) => o.goalScore <= skipScore)
+    .sort((a, b) => b.calories * b.goalScore - a.calories * a.goalScore);
+
   let caloriesUsed = 0;
-  const selected: typeof eligible = [];
-  for (const option of eligible) {
-    // A count cap as well as a calorie one. Calories alone let this run away
-    // whenever the budget was generous: nearly every topping has *some*
-    // protein, so nearly every topping beat skipping, and a high-protein
-    // Chipotle order came back holding cheese, queso, sour cream, guacamole and
-    // fajita veggies at once — plus all three salsas. Nobody orders that.
-    if (selected.length >= MAX_CONDIMENT_PICKS) break;
-    if (caloriesUsed + option.calories > calorieBudget) continue;
-    selected.push(option);
-    caloriesUsed += option.calories;
-  }
+  const selected: typeof ranked = [];
+
+  const consider = (pool: typeof ranked, onlyWhileShort: boolean) => {
+    let takenHere = 0;
+    for (const option of pool) {
+      // Fillers get a tighter cap than the slot as a whole. Three *different*
+      // salsas is not an order anyone places, and padding calories was exactly
+      // how it started happening.
+      if (onlyWhileShort && takenHere >= MAX_FILLER_PICKS) break;
+      // A count cap as well as a calorie one. Calories alone let this run away
+      // whenever the budget was generous: nearly every topping has *some*
+      // protein, so nearly every topping beat skipping, and a high-protein
+      // Chipotle order came back holding cheese, queso, sour cream, guacamole
+      // and fajita veggies at once — plus all three salsas. Nobody orders that.
+      if (selected.length >= MAX_CONDIMENT_PICKS) break;
+      if (onlyWhileShort && caloriesUsed >= caloriesNeeded) break;
+      if (caloriesUsed + option.calories > calorieBudget) continue;
+      selected.push(option);
+      caloriesUsed += option.calories;
+      takenHere++;
+    }
+  };
+
+  consider(helpful, false);
+  consider(fillers, true);
 
   return { selection: { slot_name, required, pick, selected }, caloriesUsed };
 }
@@ -550,6 +590,110 @@ function restrictToCalorieRange(
 // The ceiling leaves CONDIMENT_RESERVE of headroom, so that a core build at the
 // top of its range plus a full complement of condiments still lands inside the
 // window the user asked for.
+// ── Build strategies ─────────────────────────────────────────────────────────
+//
+// A build-your-own restaurant has one *best* answer to a query and several
+// *good* ones, and which is right depends on the person. Returning only the
+// optimum hides that, so results cover three positions on one axis: how much
+// repetition you'll accept in exchange for hitting your goal harder.
+//
+// Repetition is not a flaw — it is frequently the smart play. At Raising
+// Cane's, three Texas Toasts and three Crinkle-Cut Fries carry the same protein
+// but differ by 420 calories, so taking three toasts is what pays for the
+// bigger box of chicken. "Box Combo + 3x Texas Toast" is 1120 cal / 60g;
+// swapping to fries makes it 1540 cal for the identical 60g. The optimizer is
+// right to repeat. It's just not right for *everyone*.
+
+export type BuildStrategy = "optimized" | "balanced" | "variety";
+
+export const BUILD_STRATEGIES: readonly BuildStrategy[] = [
+  "optimized",
+  "balanced",
+  "variety",
+];
+
+// How heavily each strategy weighs variety against pure goal fit. "optimized"
+// ignores variety entirely, which is what makes it the strongest answer to the
+// question as literally asked.
+const STRATEGY_VARIETY_WEIGHT: Record<BuildStrategy, number> = {
+  optimized: 0,
+  balanced: 0.45,
+  variety: 0.8,
+};
+
+const STRATEGY_LABELS: Record<BuildStrategy, string> = {
+  optimized: "Best match",
+  balanced: "Balanced",
+  variety: "Most variety",
+};
+
+export interface BuildOption {
+  label: string;
+  strategy: BuildStrategy;
+  order: SlotSelection[];
+  total_calories: number;
+  total_protein_g: number;
+  total_fat_g: number;
+  total_carbs_g: number;
+  total_sodium_mg: number;
+  total_price: number;
+  score: number;
+}
+
+/**
+ * How much of this build is made of *different* things, from 0 to 1.
+ *
+ * Three Texas Toasts scores 1/3; toast plus fries plus slaw scores 3/3. Builds
+ * with no repeatable slot at all score 1 — there was no opportunity to repeat,
+ * so there's nothing to hold against them.
+ */
+function varietyScore(build: ComponentOption[][]): number {
+  const picks = build.flat();
+  if (picks.length === 0) return 1;
+  const distinct = new Set(picks.map((o) => o.id)).size;
+  return distinct / picks.length;
+}
+
+/**
+ * How much two builds overlap, 0 to 1 (Jaccard: shared components over total
+ * distinct components).
+ *
+ * Needed because varietyScore alone only measures repetition *within* one
+ * order, and repetition is only possible in "pick many" slots. Chipotle has
+ * none — base, protein, rice and beans are all pick-one — so every Chipotle
+ * build scored a perfect 1.0 and the variety strategies had nothing to work
+ * with. The three "different" options came back as the same order with the
+ * black beans swapped for pinto.
+ *
+ * So options are also scored on being unlike the ones already chosen. That's
+ * the axis Chipotle actually varies along: a different protein or a different
+ * base, rather than a different bean.
+ */
+function buildSimilarity(a: Set<number>, b: Set<number>): number {
+  let shared = 0;
+  for (const id of a) if (b.has(id)) shared++;
+  const union = a.size + b.size - shared;
+  return union === 0 ? 0 : shared / union;
+}
+
+// How hard to push later options away from earlier ones. High enough to reject
+// a bean swap as a distinct option; low enough that a genuinely better build
+// still wins on merit.
+const DIVERSITY_WEIGHT = 0.4;
+
+/** Nutrition and price totals for a finished order, condiments included. */
+function totalsForOrder(order: SlotSelection[]): BuildTotals {
+  const picks = order.flatMap((slot) => slot.selected);
+  return {
+    calories: picks.reduce((s, o) => s + o.calories, 0),
+    protein_g: picks.reduce((s, o) => s + o.protein_g, 0),
+    fat_g: picks.reduce((s, o) => s + o.fat_g, 0),
+    carbs_g: picks.reduce((s, o) => s + o.carbs_g, 0),
+    sodium_mg: picks.reduce((s, o) => s + o.sodium_mg, 0),
+    price: picks.reduce((s, o) => s + o.price, 0),
+  };
+}
+
 function coreCalorieRange(target: number | undefined): { min: number; max: number } {
   if (target === undefined) {
     return { min: 0, max: MAX_UNTARGETED_CALORIES - CONDIMENT_RESERVE };
@@ -560,12 +704,12 @@ function coreCalorieRange(target: number | undefined): { min: number; max: numbe
   };
 }
 
-export function buildOrder(
+export function buildOrders(
   slots: Slot[],
   goals: Goal[],
   calorieTarget?: number,
   budgetPriority: boolean = false
-): SlotSelection[] {
+): BuildOption[] {
   if (slots.length === 0) return [];
 
   // Required slots are the backbone of the meal regardless of pick type
@@ -628,52 +772,131 @@ export function buildOrder(
   // into an empty build list below would throw rather than degrade.
   if (builds.length === 0) return [];
 
-  let bestIdx = 0;
-  let bestScore = -Infinity;
-  for (let i = 0; i < builds.length; i++) {
-    const score =
+  const meritScores = builds.map(
+    (_, i) =>
       goalWeight * goalScores[i] +
       calWeight * (calScores ? calScores[i] : 0) +
-      priceWeight * pScores[i];
-    if (score > bestScore) {
-      bestScore = score;
-      bestIdx = i;
-    }
-  }
-
-  const winningBuild = builds[bestIdx];
-  const jointResult: SlotSelection[] = jointSlots.map((slot, i) => ({
-    slot_name: slot.slot_name,
-    required: slot.required,
-    pick: slot.pick,
-    selected: winningBuild[i].map((o) => ({ ...o, score: bestScore })),
-  }));
-
-  // What's left for toppings and salsa. With a target that's the full target
-  // minus what the core slots actually used — and because the core slots aimed
-  // at coreTarget rather than the full one, roughly CONDIMENT_RESERVE survives
-  // to here by construction.
-  //
-  // With no target this used to be Infinity, which is how an untargeted search
-  // ended up holding five toppings and three salsas: every option beat adding
-  // nothing, and nothing ever ran out. Now it gets the same reserve, bounded by
-  // the untargeted ceiling.
-  let remainingBudget = calorieTarget
-    ? Math.max(0, calorieTarget - totals[bestIdx].calories)
-    : Math.max(0, Math.min(CONDIMENT_RESERVE, MAX_UNTARGETED_CALORIES - totals[bestIdx].calories));
-
-  const deferredResult: SlotSelection[] = [];
-  for (const slot of deferredSlots) {
-    const { selection, caloriesUsed } = decideOptionalManySlot(
-      slot, goals, budgetPriority, remainingBudget
-    );
-    deferredResult.push(selection);
-    remainingBudget -= caloriesUsed;
-  }
-
-  // Return slots in their original order so the UI's slot list stays stable.
-  const bySlotName = new Map(
-    [...jointResult, ...deferredResult].map((r) => [r.slot_name, r])
+      priceWeight * pScores[i]
   );
-  return slots.map((slot) => bySlotName.get(slot.slot_name)!);
+  const varietyScoresByIdx = builds.map(varietyScore);
+
+  // Turn one candidate build into a finished order: the core slots as chosen,
+  // plus whatever condiments fit in the calories it left behind.
+  const finalize = (buildIdx: number, score: number): SlotSelection[] => {
+    const build = builds[buildIdx];
+
+    const jointResult: SlotSelection[] = jointSlots.map((slot, i) => ({
+      slot_name: slot.slot_name,
+      required: slot.required,
+      pick: slot.pick,
+      selected: build[i].map((o) => ({ ...o, score })),
+    }));
+
+    // What's left for toppings and salsa. With a target that's the full target
+    // minus what the core slots actually used — and because the core slots
+    // aimed at coreTarget rather than the full one, roughly CONDIMENT_RESERVE
+    // survives to here by construction.
+    //
+    // With no target this used to be Infinity, which is how an untargeted
+    // search ended up holding five toppings and three salsas: every option beat
+    // adding nothing, and nothing ever ran out.
+    let remainingBudget = calorieTarget
+      ? Math.max(0, calorieTarget - totals[buildIdx].calories)
+      : Math.max(
+          0,
+          Math.min(CONDIMENT_RESERVE, MAX_UNTARGETED_CALORIES - totals[buildIdx].calories)
+        );
+
+    // How far short of the stated target the core slots left us. Condiments may
+    // close that gap even when they don't serve the goal; with no target stated
+    // there is no gap to close and they're chosen on goal fit alone.
+    let stillShort = calorieTarget
+      ? Math.max(0, calorieTarget - totals[buildIdx].calories)
+      : 0;
+
+    const deferredResult: SlotSelection[] = [];
+    for (const slot of deferredSlots) {
+      const { selection, caloriesUsed } = decideOptionalManySlot(
+        slot, goals, budgetPriority, remainingBudget, stillShort
+      );
+      deferredResult.push(selection);
+      remainingBudget -= caloriesUsed;
+      stillShort = Math.max(0, stillShort - caloriesUsed);
+    }
+
+    // Return slots in their original order so the UI's slot list stays stable.
+    const bySlotName = new Map(
+      [...jointResult, ...deferredResult].map((r) => [r.slot_name, r])
+    );
+    return slots.map((slot) => bySlotName.get(slot.slot_name)!);
+  };
+
+  // Component id sets, for measuring how unlike each other two builds are.
+  const buildIds = builds.map((b) => new Set(b.flat().map((o) => o.id)));
+
+  const chosen: BuildOption[] = [];
+  const takenBuilds = new Set<number>();
+  const chosenIds: Set<number>[] = [];
+
+  for (const strategy of BUILD_STRATEGIES) {
+    const varietyWeight = STRATEGY_VARIETY_WEIGHT[strategy];
+
+    let bestIdx = -1;
+    let bestScore = -Infinity;
+    for (let i = 0; i < builds.length; i++) {
+      if (takenBuilds.has(i)) continue;
+
+      // Penalise looking like something already offered. The first option has
+      // nothing to differ from, so it is chosen on merit alone — which is what
+      // makes "Best match" genuinely the best answer rather than a compromise.
+      let overlap = 0;
+      for (const previous of chosenIds) {
+        overlap = Math.max(overlap, buildSimilarity(buildIds[i], previous));
+      }
+
+      const score =
+        (1 - varietyWeight) * meritScores[i] +
+        varietyWeight * varietyScoresByIdx[i] -
+        DIVERSITY_WEIGHT * overlap;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+    // Every distinct build is already spoken for — a small menu, or a tight
+    // calorie window, can leave fewer than three candidates.
+    if (bestIdx === -1) break;
+
+    takenBuilds.add(bestIdx);
+    chosenIds.push(buildIds[bestIdx]);
+    const order = finalize(bestIdx, meritScores[bestIdx]);
+    const orderTotals = totalsForOrder(order);
+
+    chosen.push({
+      label: STRATEGY_LABELS[strategy],
+      strategy,
+      order,
+      total_calories: orderTotals.calories,
+      total_protein_g: +orderTotals.protein_g.toFixed(1),
+      total_fat_g: +orderTotals.fat_g.toFixed(1),
+      total_carbs_g: +orderTotals.carbs_g.toFixed(1),
+      total_sodium_mg: orderTotals.sodium_mg,
+      total_price: +orderTotals.price.toFixed(2),
+      score: meritScores[bestIdx],
+    });
+  }
+
+  return chosen;
+}
+
+// Kept for callers that only want the single best build — the "optimized"
+// strategy is by definition what the old single-winner search returned.
+export function buildOrder(
+  slots: Slot[],
+  goals: Goal[],
+  calorieTarget?: number,
+  budgetPriority: boolean = false
+): SlotSelection[] {
+  return buildOrders(slots, goals, calorieTarget, budgetPriority)[0]?.order ?? [];
 }
