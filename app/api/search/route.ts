@@ -1,119 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseQuery } from "@/lib/parseQuery";
-import { getAllRestaurants, getMenu } from "@/lib/db";
-import { recommendMeal, buildOrders, type MenuItem, type Slot } from "@/lib/optimize";
-import {
-  fromMealCombination,
-  fromBuildOption,
-  type SearchResponse,
-  type SearchError,
-} from "@/lib/searchResult";
+import { runSearch } from "@/lib/searchService";
 
-// Long enough for any real request ("high protein low carb order at chick fil a
-// around 800 calories" is 62), short enough that the combinatorial search can
-// never be handed something pathological.
-const MAX_QUERY_LENGTH = 200;
-
-const fail = (error: SearchError, status: number) =>
-  NextResponse.json(error, { status });
+// ── GET /api/search ──────────────────────────────────────────────────────────
+//
+//   q           what the user typed
+//   restaurant  slug of the storefront they're standing at (optional)
+//   context     `criteria.canonical` from the previous response (optional)
+//
+// With only `q`, the restaurant has to be named in the text: this is the home
+// page's one-box search. With `restaurant`, `q` is criteria only ("under 600
+// calories") and may even be empty. With `context`, the message is applied on
+// top of what was already in force — "cheaper", "no rice" — which is how the
+// in-restaurant conversation keeps its thread without the server storing one.
+//
+// The response shape is defined in lib/searchResult.ts. This file is only the
+// HTTP wrapper; the work is in lib/searchService.ts.
 
 export async function GET(request: NextRequest) {
-  // ── Validate the input before anything touches the database ───────────────
-  const raw = request.nextUrl.searchParams.get("q");
+  const params = request.nextUrl.searchParams;
 
-  if (raw === null || raw.trim() === "") {
-    return fail(
-      {
-        error: "Missing required query param: q",
-        code: "missing_query",
-      },
-      400
-    );
-  }
+  const outcome = await runSearch({
+    q: params.get("q"),
+    restaurant: params.get("restaurant"),
+    context: params.get("context"),
+  });
 
-  if (raw.length > MAX_QUERY_LENGTH) {
-    return fail(
-      {
-        error: `Query is too long (${raw.length} characters, max ${MAX_QUERY_LENGTH}).`,
-        code: "query_too_long",
-      },
-      400
-    );
-  }
-
-  const q = raw.trim();
-  const { restaurant: slug, goals, calorieTarget, budgetPriority } = parseQuery(q);
-
-  if (!slug) {
-    return fail(
-      {
-        error:
-          "No restaurant found in your search. Try something like 'high protein from Chick-fil-A'.",
-        code: "no_restaurant",
-        available: (await getAllRestaurants()).map((r) => r.name),
-      },
-      400
-    );
-  }
-
-  const menu = await getMenu(slug);
-  if (!menu) {
-    return fail(
-      {
-        error: `We don't have ${slug} yet.`,
-        code: "unknown_restaurant",
-        available: (await getAllRestaurants()).map((r) => r.name),
-      },
-      404
-    );
-  }
-
-  // ── One response shape, whichever data model the restaurant uses ──────────
-  //
-  // Fixed menus rank combinations of menu items; build-your-own restaurants
-  // search across slots. Both produce "orders you could place", so both are
-  // mapped into OrderResult and the caller doesn't have to care which happened.
-  //
-  // Note there is no separate no-calorie-target branch any more. It used to
-  // return a flat list of the ten best individual items, which meant the meal
-  // grammar — shapes, labels, combinations — only ever activated if the user
-  // typed a calorie number. Since the homepage's restaurant buttons search
-  // without one, the primary path was the one path with none of that work in
-  // it. recommendMeal() now handles an absent target the same way buildOrders()
-  // always has: bound the calories, drop calorie proximity from the score.
-
-  const { restaurant } = menu;
-
-  // The seven seeded restaurants all have prices; the engine this route still
-  // calls cannot work without them. (Lifted by the engine rewrite.)
-  const results =
-    restaurant.type === "fixed"
-      ? recommendMeal(
-          menu.items as MenuItem[],
-          goals,
-          calorieTarget ?? undefined,
-          3,
-          budgetPriority
-        ).map(fromMealCombination)
-      : buildOrders(
-          menu.slots as Slot[],
-          goals,
-          calorieTarget ?? undefined,
-          budgetPriority
-        ).map(fromBuildOption);
-
-  const response: SearchResponse = {
-    restaurant: {
-      name: restaurant.name,
-      slug: restaurant.slug,
-      type: restaurant.type,
-    },
-    query: q,
-    goals,
-    calorie_target: calorieTarget,
-    budget_priority: budgetPriority,
-    results,
-  };
-
-  return NextResponse.json(response);
+  return NextResponse.json(outcome.body, { status: outcome.status });
 }

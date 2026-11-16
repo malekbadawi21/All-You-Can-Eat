@@ -22,8 +22,8 @@ both work now, but 22 is what CI runs.
 | # | Phase | State |
 |---|---|---|
 | 1 | Data layer: libSQL, migrations, seed files, provenance, real role/daypart/weight columns | **done** |
-| 2 | Engine: every defect in the handoff table fixed test-first; constraints vs targets vs preferences; consistent results | next |
-| 3 | Product experience: accessible DOM results, item detail, chat-style refinement, restaurant pages, touch, fallbacks, mobile | pending |
+| 2 | Engine: every defect in the handoff table fixed test-first; constraints vs targets vs preferences; consistent results | **done** |
+| 3 | Product experience: accessible DOM results, item detail, chat-style refinement, restaurant pages, touch, fallbacks, mobile | next |
 | 4 | Dynamic ingestion and a street that works for N restaurants | pending |
 | 5 | Review loop (Playwright screenshots, independent review), CI, README, deploy config | pending |
 
@@ -35,10 +35,19 @@ both work now, but 22 is what CI runs.
   (`npm run db:setup | db:status`).
 - **Provenance** — every menu row points at a `sources` row (name, market,
   fetched-at). A price cannot be stored without one.
-- **Engine** — unchanged from `main` so far (`lib/optimize.ts`,
-  `lib/mealGrammar.ts`, `lib/parseQuery.ts`), now reading role/daypart/weight
-  from the item instead of deriving them from `category`.
-- **Frontend** — unchanged from `main`: the 3D street, fly-ins, three boards.
+- **Engine** — rewritten. `lib/parseQuery.ts` → `lib/search.ts` →
+  `lib/optimize.ts` (`recommend()`) → `lib/selectResults.ts`. Goals are scored
+  on density; constraints, targets and preferences are separate; both kinds of
+  restaurant return 3–5 uniquely labelled orders. Every defect in the handoff
+  table has a regression test (`lib/defects.test.ts`) and is fixed —
+  compare `docs/defects-before.md` with `docs/defects-after.md`.
+- **API** — `GET /api/search?q=…&restaurant=…&context=…`. Returns
+  `{ restaurant, query, criteria, results, notices, data }`. `context` is the
+  previous response's `criteria.canonical`, which is how a conversation
+  continues with no server-side session.
+- **Frontend** — still the `main` UI (3D street, fly-ins, three boards). It
+  compiles against the new contract but does not use criteria, notices or
+  results 4–5 yet. That is Phase 3.
 
 ## Decisions
 

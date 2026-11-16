@@ -304,7 +304,7 @@ export const MEAL_SHAPES: readonly MealShape[] = ["classic", "single", "stack"];
  */
 export const SHAPE_LABELS: Record<MealShape, string> = {
   classic: "Classic meal",
-  single: "Just the main",
+  single: "No sides",
   stack: "Double up",
 };
 

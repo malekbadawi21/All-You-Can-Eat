@@ -191,7 +191,11 @@ function draw(
   ctx.textAlign = "right";
   ctx.fillStyle = brand;
   ctx.font = `40px "${FONT_FAMILY}"`;
-  ctx.fillText(`~$${r.total_price.toFixed(2)}`, BOARD_W - pad, barY + 30);
+  // …and are missing entirely for a restaurant with no price data, in which
+  // case the corner is left empty rather than showing "$0.00".
+  if (r.total_price !== null) {
+    ctx.fillText(`~$${r.total_price.toFixed(2)}`, BOARD_W - pad, barY + 30);
+  }
 }
 
 /** Builds a board texture, redrawing whenever its content changes. */

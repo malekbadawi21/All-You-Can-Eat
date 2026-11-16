@@ -64,7 +64,7 @@
     { "name": "Breakfast Crunchwrap (Sausage)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 670, "protein_g": 25, "fat_g": 37, "carbs_g": 61, "sodium_mg": 1360, "price": 4.49 },
     { "name": "Breakfast Crunchwrap (Bacon)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 640, "protein_g": 23, "fat_g": 34, "carbs_g": 62, "sodium_mg": 1370, "price": 4.49 },
     { "name": "Grande Scrambler Burrito (Sausage)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 660, "protein_g": 27, "fat_g": 36, "carbs_g": 62, "sodium_mg": 1630, "price": 5.49 },
-    { "name": "Breakfast Soft Taco (Egg)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 170, "protein_g": 6, "fat_g": 8, "carbs_g": 18, "sodium_mg": 330, "price": 2.49 },
+    { "name": "Breakfast Soft Taco (Egg)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.35, "calories": 170, "protein_g": 6, "fat_g": 8, "carbs_g": 18, "sodium_mg": 330, "price": 2.49 },
     { "name": "Cinnabon Delights (2 pc)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 160, "protein_g": 2, "fat_g": 10, "carbs_g": 17, "sodium_mg": 80, "price": 1.99 }
   ]
 }

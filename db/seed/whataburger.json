@@ -36,7 +36,7 @@
   },
   "items": [
     { "name": "Whataburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 580, "protein_g": 29, "fat_g": 25, "carbs_g": 63, "sodium_mg": 1110, "price": 6.89 },
-    { "name": "Whataburger Jr.", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 340, "protein_g": 16, "fat_g": 14, "carbs_g": 38, "sodium_mg": 630, "price": 3.99 },
+    { "name": "Whataburger Jr.", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 0.75, "calories": 340, "protein_g": 16, "fat_g": 14, "carbs_g": 38, "sodium_mg": 630, "price": 3.99 },
     { "name": "Double Whataburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 840, "protein_g": 48, "fat_g": 42, "carbs_g": 66, "sodium_mg": 1390, "price": 8.99 },
     { "name": "Triple Whataburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 1080, "protein_g": 67, "fat_g": 60, "carbs_g": 68, "sodium_mg": 1670, "price": 11.99 },
     { "name": "Patty Melt", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 870, "protein_g": 41, "fat_g": 52, "carbs_g": 59, "sodium_mg": 1430, "price": 8.49 },
@@ -59,8 +59,8 @@
     { "name": "Breakfast on a Bun (Sausage)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 530, "protein_g": 22, "fat_g": 34, "carbs_g": 31, "sodium_mg": 1050, "price": 5.49 },
     { "name": "Taquito with Egg & Cheese", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 380, "protein_g": 14, "fat_g": 17, "carbs_g": 43, "sodium_mg": 900, "price": 4.99 },
     { "name": "Pancakes (3 ct)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 580, "protein_g": 14, "fat_g": 18, "carbs_g": 90, "sodium_mg": 1570, "price": 5.99 },
-    { "name": "Hash Brown Sticks (6 ct)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 270, "protein_g": 3, "fat_g": 15, "carbs_g": 32, "sodium_mg": 830, "price": 2.99 },
-    { "name": "Cinnamon Roll", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 490, "protein_g": 8, "fat_g": 14, "carbs_g": 82, "sodium_mg": 490, "price": 3.49 },
+    { "name": "Hash Brown Sticks (6 ct)", "category": "breakfast", "role": "side", "daypart": "breakfast", "portion_weight": 0.25, "calories": 270, "protein_g": 3, "fat_g": 15, "carbs_g": 32, "sodium_mg": 830, "price": 2.99 },
+    { "name": "Cinnamon Roll", "category": "breakfast", "role": "dessert", "daypart": "breakfast", "portion_weight": 0.25, "calories": 490, "protein_g": 8, "fat_g": 14, "carbs_g": 82, "sodium_mg": 490, "price": 3.49 },
     { "name": "Hot Apple Pie", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 230, "protein_g": 2, "fat_g": 11, "carbs_g": 33, "sodium_mg": 240, "price": 1.99 }
   ]
 }

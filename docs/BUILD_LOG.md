@@ -86,3 +86,99 @@ would have inserted.
 **What I rejected.** Postgres (no zero-setup local mode), keeping the data in
 code (no provenance, no ingestion), and per-row merging on reload (needs an
 identity for "the same item" that survives a rename).
+
+---
+
+## Phase 2 — The engine
+
+**Goal.** Fix every defect in the handoff's table, test-first, and remove the
+causes rather than the symptoms: `category` doing three jobs, "under" parsed as
+"around", two optimisers with different rules.
+
+**How it was done.** The workflow from `CLAUDE.md`, literally:
+
+1. Ran all eighteen queries through the real route and saved the output
+   (`docs/defects-before.md`). Every defect reproduced, plus two new ones.
+2. Wrote the tests (`lib/defects.test.ts`), one group per defect, each printing
+   the offending order when it fails.
+3. Rewrote the engine.
+4. Ran the same queries again (`docs/defects-after.md`) and read the output as
+   a person would. That step found problems no test had been written for yet —
+   a Bowl-for-Salad swap offered as a "different" order, a dessert used to pad a
+   low-calorie meal, thirty-two nuggets after a portion weight was lowered — and
+   each became a test before it was fixed.
+
+**Rewrite or patch?** Rewrite, but not of the ideas. The meal grammar is
+untouched in spirit; the joint search over build slots, the coupled slots, the
+condiment phase and the diversity rules are all still there. What changed is
+that there is now **one** pipeline (`recommend()`) with five steps shared by
+both kinds of restaurant, where there were two optimisers that had drifted
+apart. Every behaviour the old tests protected is re-asserted in
+`lib/optimize.test.ts` against the new engine, with the original reasoning kept
+in the comments.
+
+**The three ideas that fixed most of the table.** Each has its own ADR.
+
+- **Density, not totals or per-item averages** (ADR 0003). Fixes the Chipotle
+  burrito and the Taco Bell dessert in one move.
+- **Constraints, targets and preferences are different things** (ADR 0004).
+  Fixes "under 800" and "under $8", and gives the conversation a memory.
+- **Results are strata with a quality bar** (ADR 0005). Fixes the repeated
+  labels, the 5-versus-3 inconsistency and the 31g "Most variety".
+
+**The data fixes.** Seventeen rows in `db/seed/*.json` were reclassified, which
+is what the new columns are for: Side Salad and the hash browns became sides,
+the Cinnamon Roll a dessert, the breakfast taco got a taco's portion weight,
+and the small burgers 0.75. Nugget portions stayed at a full main: lowering
+them is exactly what produced 36 nuggets last time, and it did again when I
+tried it.
+
+**A bug the tests found in my own parser.** "high protein under 700 calories"
+came back with *no criteria at all*. The gram-limit recogniser saw "protein
+under 700", decided 700g of protein was implausible, and discarded the match —
+taking the calorie ceiling with it. Recognisers can now decline a match and
+leave the text for the next one. It was only visible through the API, because
+every parser test happened to put a restaurant name between the two phrases.
+
+### File by file
+
+- **`lib/criteria.ts`** — `Criteria`, `CriteriaPatch`, `applyPatch()`, and the
+  canonical text / chips that make a conversation stateless.
+- **`lib/parseQuery.ts`** — rewritten. A sequence of recognisers, each consuming
+  the span it understood; order is the design. Word boundaries everywhere
+  ("tb" no longer matches "meatball"), typo tolerance for long names, restaurant
+  aliases from the catalog instead of a hardcoded list.
+- **`lib/chains.ts`** — a directory of chains we know *of*, so "wendys" is
+  `unknown_restaurant` rather than `no_restaurant`.
+- **`lib/menuTerms.ts`** — matches "no fries" / "with nuggets" to a menu:
+  whole words, light stemming, longest phrase first.
+- **`lib/scoring.ts`** — density, the calorie plan, weights, percentile
+  normalising, and the fixed scales used to judge one order alone.
+- **`lib/optimize.ts`** — `recommend(menu, criteria)`: enumerate, constrain,
+  size, score, select. Fixed-menu enumeration, build enumeration with coupled
+  slots, greedy condiments, twin removal, constraint diagnosis.
+- **`lib/selectResults.ts`** — the strata.
+- **`lib/notices.ts`** — the codes for "what we couldn't do".
+- **`lib/search.ts`** — pure glue: resolves menu words, applies the patch on top
+  of the context, builds the response. Also `inferRestaurant()` ("big mac" →
+  McDonald's).
+- **`lib/searchService.ts`** — the only part of a search that touches the
+  database; decides which restaurant and returns a status and a body.
+- **`lib/searchResult.ts`** — the contract: `criteria`, `results`, `notices`,
+  `data`. Items gained `quantity`; prices are nullable.
+- **`app/api/search/route.ts`** — now a ten-line HTTP wrapper taking `q`,
+  `restaurant` and `context`.
+- **`lib/mealGrammar.ts`** — the single-main label is now "No sides", which is
+  true of three tacos as well as of one burger.
+- **Tests** — `lib/defects.test.ts` (the table), `lib/optimize.test.ts`
+  (everything the old suites protected), `lib/search.test.ts` (conversation,
+  menu words, notices, provenance), `lib/parseQuery.test.ts`,
+  `lib/pricing.test.ts`, `__tests__/searchRoute.test.ts` (the contract).
+  `lib/__fixtures__/seedMenus.ts` builds real menus from the seed documents so
+  engine tests need no database; `ask.ts` makes a test read like a question.
+- **Deleted:** `lib/buildOrder.test.ts` and the two hand-copied fixture files,
+  all superseded.
+
+**What I rejected.** Enumerating condiments exhaustively (577,500 builds at
+Chipotle; greedy gets the same answers in 5ms). Using the visitor's clock for
+breakfast (ADR 0006). An LLM parser (needs a key; not reproducible).
