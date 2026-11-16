@@ -1,286 +1,235 @@
 "use client";
 
-import { useState, useRef } from "react";
-import {
-  Drumstick,
-  UtensilsCrossed,
-  Soup,
-  Flame,
-  CookingPot,
-  Sandwich,
-  Beef,
-  Search,
-  Plus,
-} from "lucide-react";
-import GoalChip from "./components/GoalChip";
-import OrderResults from "./components/OrderResults";
-import type { SearchResponse, SearchError } from "@/lib/searchResult";
+import dynamic from "next/dynamic";
+import { useCallback, useRef, useState } from "react";
+import * as THREE from "three";
+import Overlay from "./components/ui/Overlay";
+import { useSearch } from "./components/ui/useSearch";
+import { HOME_POSE, focusPose, type CameraPose } from "./components/scene/cameraPoses";
+import type { CameraMode } from "./components/scene/CameraRig";
+import type { OrderResult } from "@/lib/searchResult";
+import { bySlug } from "@/lib/restaurants";
 
-// The server's own failures (SearchError) carry a machine-readable code. A
-// network failure never reaches the server, so it has no code to carry — it is
-// the client's own error state, not one of the API's.
-type ClientError = { error: string };
-type SearchResult = SearchResponse | SearchError | ClientError;
+// The 3D layer is loaded on the client only, for two independent reasons:
+//
+//   1. three.js reaches for `window` and a WebGL context at import time, which
+//      does not exist during a server render.
+//   2. three + fiber + drei is a large bundle. Dynamic import keeps it out of
+//      the initial payload so the page shell paints while it downloads.
+//
+// `ssr: false` is only legal inside a Client Component in this version of
+// Next — hence the "use client" above.
+const CityScene = dynamic(() => import("./components/scene/CityScene"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full flex items-center justify-center bg-[#B7DCEC]">
+      <p className="text-white/80 font-semibold tracking-wide">Setting the table…</p>
+    </div>
+  ),
+});
 
-const RESTAURANT_COLORS: Record<string, string> = {
-  "Chick-fil-A":   "#DD0031",
-  "McDonald's":    "#D97706",
-  Chipotle:        "#A21F1F",
-  "Taco Bell":     "#702082",
-  "Panda Express": "#C8102E",
-  "Raising Cane's":"#CA8A04",
-  Whataburger:     "#EA580C",
-};
+/** Boards show this until a search lands. */
+const IDLE_BOARD = "Tell us what you're after";
+const LOADING_BOARD = "Checking the kitchen…";
 
-const RESTAURANTS = [
-  { name: "Chick-fil-A",    Icon: Drumstick,       query: "high protein chick-fil-a"    },
-  { name: "Chipotle",       Icon: Soup,             query: "high protein chipotle"       },
-  { name: "McDonald's",     Icon: Sandwich,         query: "high protein mcdonalds"      },
-  { name: "Taco Bell",      Icon: Flame,            query: "high protein taco bell"      },
-  { name: "Panda Express",  Icon: CookingPot,       query: "high protein panda express"  },
-  { name: "Raising Cane's", Icon: UtensilsCrossed,  query: "high protein raising canes"  },
-  { name: "Whataburger",    Icon: Beef,             query: "high protein whataburger"    },
-];
-
-const EXAMPLES = [
-  "high protein chick-fil-a",
-  "keto chipotle around 700 cal",
-  "lean mcdonalds ~500 cal",
-  "cheapest high protein chipotle",
-];
+/**
+ * The top three orders go on the three boards. The API returns at most a
+ * handful; taking three is a presentation decision, not an API one.
+ */
+const BOARD_COUNT = 3;
 
 export default function Home() {
-  const [query, setQuery]     = useState("");
-  const [result, setResult]   = useState<SearchResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const inputRef  = useRef<HTMLInputElement>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
+  const { state, run, reset } = useSearch();
 
-  async function runSearch(q: string) {
-    if (!q.trim()) return;
-    setLoading(true);
-    setResult(null);
-    try {
-      const res  = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`);
-      const data = await res.json();
-      setResult(data);
-    } catch {
-      setResult({ error: "Network error — please try again." });
-    } finally {
-      setLoading(false);
+  const [mode, setMode] = useState<CameraMode>("home");
+  const [focusedSlug, setFocusedSlug] = useState<string | null>(null);
+  const [results, setResults] = useState<OrderResult[] | null>(null);
+
+  // Where a flight is heading, and a counter that launches it. A counter
+  // rather than a boolean so flying to the same storefront twice still works.
+  const [flightTo, setFlightTo] = useState<CameraPose | null>(null);
+  const [flightKey, setFlightKey] = useState(0);
+
+  // What the flight in progress is for. The rig reports "arrived" without
+  // knowing which direction it was going, so the intent is recorded here and
+  // read on arrival — rather than guessing from state, or timing it.
+  const intentRef = useRef<"enter" | "exit">("enter");
+
+  // Which mode to hand back to when the user backs out, and the exact pose to
+  // return to. Roam can end anywhere, so the pose has to be captured rather
+  // than recomputed.
+  const originRef = useRef<{ mode: CameraMode; pose: CameraPose }>({
+    mode: "home",
+    pose: HOME_POSE,
+  });
+
+  // Kept current by the rig every frame.
+  const poseRef = useRef<CameraPose>({
+    position: new THREE.Vector3().copy(HOME_POSE.position),
+    target: new THREE.Vector3().copy(HOME_POSE.target),
+  });
+
+  const focused = focusedSlug ? bySlug(focusedSlug) : undefined;
+
+  const flyTo = useCallback((pose: CameraPose, intent: "enter" | "exit") => {
+    intentRef.current = intent;
+    setFlightTo(pose);
+    setFlightKey((k) => k + 1);
+    setMode("flying");
+  }, []);
+
+  /** Remember where we came from, so backing out retraces the way in. */
+  const rememberOrigin = useCallback((from: CameraMode) => {
+    originRef.current = {
+      mode: from,
+      pose: {
+        position: poseRef.current.position.clone(),
+        target: poseRef.current.target.clone(),
+      },
+    };
+  }, []);
+
+  // ── Home: one query does everything ───────────────────────────────────────
+  //
+  // The query names the restaurant *and* the food criteria, so a single call
+  // both picks the destination and fills the boards. There is no second search
+  // on arrival — the answer is already in hand before the camera moves.
+  const handleHomeSearch = useCallback(
+    async (query: string) => {
+      const data = await run(query);
+      if (!data) return; // useSearch has already surfaced the failure
+
+      const placement = bySlug(data.restaurant.slug);
+      if (!placement) return;
+
+      rememberOrigin("home");
+      setFocusedSlug(placement.slug);
+      setResults(data.results.slice(0, BOARD_COUNT));
+      flyTo(focusPose(placement), "enter");
+    },
+    [run, flyTo, rememberOrigin]
+  );
+
+  // ── Free roam: click a building ───────────────────────────────────────────
+  const handleSelectRestaurant = useCallback(
+    (slug: string) => {
+      const placement = bySlug(slug);
+      if (!placement) return;
+
+      rememberOrigin("roam");
+      setFocusedSlug(slug);
+      // Arriving by click means no query has been asked yet, so the boards
+      // wait in their idle state.
+      setResults(null);
+      reset();
+      flyTo(focusPose(placement), "enter");
+    },
+    [flyTo, rememberOrigin, reset]
+  );
+
+  // ── At a storefront: criteria only ────────────────────────────────────────
+  //
+  // The bar here is restaurant-agnostic by design — you're standing in front
+  // of the building. But /api/search infers the restaurant from the query
+  // text, so the name is appended before sending.
+  const handleStorefrontSearch = useCallback(
+    async (criteria: string) => {
+      if (!focused) return;
+
+      const data = await run(`${criteria} ${focused.name}`);
+      if (!data) return;
+
+      // If the criteria happened to name a different chain, the parser may
+      // have picked that one instead. Showing another restaurant's food on
+      // these boards would be a lie about where you're standing.
+      if (data.restaurant.slug !== focused.slug) {
+        setResults(null);
+        return;
+      }
+
+      setResults(data.results.slice(0, BOARD_COUNT));
+    },
+    [focused, run]
+  );
+
+  const handleFlightComplete = useCallback(() => {
+    if (intentRef.current === "enter") {
+      setMode("focused");
+      return;
     }
-  }
+    // Backing out: hand the camera to whichever mode we came from, and only
+    // now clear the focus. Clearing it at the moment the button was pressed
+    // would blank the boards while the camera was still pulling away from them.
+    setMode(originRef.current.mode);
+    setFocusedSlug(null);
+    setResults(null);
+    reset();
+  }, [reset]);
 
-  function handleExample(q: string) {
-    setQuery(q);
-    runSearch(q);
-    inputRef.current?.focus();
-  }
+  const handleBack = useCallback(() => {
+    if (mode === "roam") {
+      // Roam has no flight to unwind — it hands straight back to the parked
+      // home pose, which `parked` eases onto.
+      setMode("home");
+      reset();
+      return;
+    }
+    flyTo(originRef.current.pose, "exit");
+  }, [mode, reset, flyTo]);
 
-  function handleRestaurant(q: string) {
-    setQuery(q);
-    runSearch(q);
-    searchRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
+  const handleExplore = useCallback(() => {
+    reset();
+    setMode("roam");
+  }, [reset]);
 
-  function resetSearch() {
-    setResult(null);
-    setQuery("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  const parked =
+    mode === "home"
+      ? HOME_POSE
+      : mode === "focused" && focused
+        ? focusPose(focused)
+        : null;
 
-  const accentColor =
-    result && "restaurant" in result
-      ? (RESTAURANT_COLORS[result.restaurant.name] ?? "#059669")
-      : "#059669";
+  const boardMessage =
+    state.status === "loading"
+      ? LOADING_BOARD
+      : state.status === "error"
+        ? "We don't have that here"
+        : IDLE_BOARD;
 
-  const hasResults = result && !loading;
+  // Errors belong next to the box that caused them, and only while the user is
+  // somewhere they can act on them.
+  const errorMessage =
+    state.status === "error" && (mode === "home" || mode === "focused")
+      ? state.message
+      : null;
 
   return (
-    <div className="min-h-screen" style={{ background: "#F5F4F0" }}>
+    <main className="fixed inset-0 overflow-hidden">
+      <CityScene
+        mode={mode}
+        focusedSlug={focusedSlug}
+        parked={parked}
+        flightTo={flightTo}
+        flightKey={flightKey}
+        poseRef={poseRef}
+        onFlightComplete={handleFlightComplete}
+        onSelectRestaurant={handleSelectRestaurant}
+        results={results}
+        boardMessage={boardMessage}
+      />
 
-      {/* ── Sticky nav ─────────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-20 border-b border-stone-200 bg-white/90 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={resetSearch}
-            className="text-xl font-extrabold tracking-tight hover:opacity-70 transition-opacity"
-            style={{ color: "#059669" }}
-          >
-            AYCE
-          </button>
-          <span className="text-sm font-medium text-stone-400 hidden sm:block">
-            All You Can Eat
-          </span>
-        </div>
-      </nav>
-
-      {/* ── Hero banner ─────────────────────────────────────────────────────── */}
-      <section
-        className="w-full flex items-center justify-center"
-        style={{ minHeight: "260px", background: "#111827" }}
-      >
-        <div className="text-center px-6 py-20">
-          <h1 className="text-5xl sm:text-7xl font-extrabold text-white tracking-tighter leading-[0.95]">
-            All You Can Eat
-          </h1>
-          <p
-            className="text-base sm:text-lg font-normal mt-4 max-w-lg mx-auto"
-            style={{ color: "#9CA3AF" }}
-          >
-            Smart nutrition picks for any fast food goal
-          </p>
-        </div>
-      </section>
-
-      {/* ── Search bar — floats out of the hero ─────────────────────────────── */}
-      <div ref={searchRef} className="max-w-3xl mx-auto px-6 -mt-7 relative z-10">
-        <div className="bg-white rounded-2xl shadow-2xl border border-stone-200">
-          <form onSubmit={(e) => { e.preventDefault(); runSearch(query); }}>
-            <div className="flex items-center focus-within:ring-2 focus-within:ring-emerald-300 rounded-2xl transition-all">
-              <span className="pl-5 shrink-0 text-stone-400">
-                <Search className="h-5 w-5" />
-              </span>
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="What would you like to eat?"
-                className="flex-1 py-5 px-4 bg-transparent text-stone-900 placeholder:text-stone-400 text-base focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={loading || !query.trim()}
-                className="m-2 px-7 py-3 text-white rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 active:scale-95"
-                style={{ background: "#059669" }}
-                onMouseEnter={(e) => { if (!loading && query.trim()) (e.target as HTMLButtonElement).style.background = "#047857"; }}
-                onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.background = "#059669"; }}
-              >
-                {loading ? "…" : "Search"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Editorial example links */}
-        <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-3 items-baseline px-1">
-          <span className="text-sm italic text-stone-400 select-none">e.g.</span>
-          {EXAMPLES.map((q) => (
-            <button
-              key={q}
-              onClick={() => handleExample(q)}
-              className="text-sm text-stone-500 hover:text-stone-900 underline underline-offset-2 decoration-stone-300 hover:decoration-stone-700 transition-colors"
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Explore Menus grid (hidden once results are showing) ─────────────── */}
-      {!loading && !hasResults && (
-        <section className="max-w-5xl mx-auto px-6 pt-14 pb-20">
-          <h2 className="text-2xl font-extrabold text-stone-900 tracking-tight mb-6">Explore Menus</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {RESTAURANTS.map((r) => (
-              <button
-                key={r.name}
-                onClick={() => handleRestaurant(r.query)}
-                className="group flex flex-col items-center justify-center gap-4 rounded-2xl border border-stone-200 bg-white p-8 text-center transition-all hover:border-emerald-200 hover:bg-emerald-50/40 hover:scale-[1.03] hover:shadow-lg active:scale-[0.97] shadow-sm"
-                style={{ minHeight: "180px" }}
-              >
-                <r.Icon
-                  size={36}
-                  strokeWidth={1.5}
-                  className="transition-transform duration-300 group-hover:scale-110"
-                  style={{ color: "#059669" }}
-                />
-                <span className="text-base font-bold tracking-tight text-stone-800">
-                  {r.name}
-                </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-stone-400 group-hover:text-stone-600 transition-colors">
-                  Explore →
-                </span>
-              </button>
-            ))}
-
-            {/* Coming soon placeholder */}
-            <div
-              className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-stone-200 p-8 text-center"
-              style={{ minHeight: "180px" }}
-            >
-              <Plus size={28} strokeWidth={1.5} className="text-stone-300" />
-              <span className="text-sm font-semibold text-stone-300">More coming soon</span>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Results ─────────────────────────────────────────────────────────── */}
-      {(loading || hasResults) && (
-        <section className="max-w-4xl mx-auto px-6 pb-24 pt-10">
-
-          {loading && (
-            <div className="flex flex-col items-center py-20 gap-4">
-              <div className="w-10 h-10 border-[3px] border-stone-200 border-t-emerald-500 rounded-full animate-spin" />
-              <p className="text-stone-500 font-medium">Crunching the numbers…</p>
-            </div>
-          )}
-
-          {hasResults && "error" in result && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-red-700 font-medium text-sm">
-              {result.error}
-            </div>
-          )}
-
-          {hasResults && "restaurant" in result && (
-            <div className="anim-up">
-              {/* Back button */}
-              <button
-                onClick={resetSearch}
-                className="group flex items-center gap-1.5 text-sm font-semibold text-stone-500 hover:text-emerald-600 transition-colors mb-5"
-              >
-                <span className="group-hover:-translate-x-1 transition-transform inline-block">←</span>
-                Back to Explore
-              </button>
-
-              {/* Restaurant header card */}
-              <div className="flex items-center gap-4 mb-6 p-5 bg-white rounded-2xl border border-stone-200 shadow-sm">
-                <div className="w-1.5 h-12 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-0.5">
-                    Top picks at
-                  </p>
-                  <h2 className="text-2xl font-extrabold text-stone-900 leading-none">
-                    {result.restaurant.name}
-                  </h2>
-                  {result.calorie_target && (
-                    <p className="text-sm text-stone-500 mt-1">Around {result.calorie_target} calories</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Detected goals */}
-              {(result.goals.length > 0 || result.budget_priority) && (
-                <div className="flex flex-wrap gap-2 mb-6 items-center">
-                  <span className="text-sm font-medium text-stone-400">Goals:</span>
-                  {result.goals.map((g) => (
-                    <GoalChip key={g.nutrient} goal={g} />
-                  ))}
-                  {result.budget_priority && (
-                    <span className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-semibold border bg-amber-50 text-amber-700 border-amber-200">
-                      Budget-friendly
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <OrderResults results={result.results} accentColor={accentColor} />
-            </div>
-          )}
-        </section>
-      )}
-    </div>
+      <Overlay
+        mode={mode}
+        busy={state.status === "loading"}
+        errorMessage={errorMessage}
+        available={state.status === "error" ? state.available : undefined}
+        focusedName={focused?.name ?? null}
+        focusedAccent={focused?.brand ?? "#059669"}
+        onHomeSearch={handleHomeSearch}
+        onStorefrontSearch={handleStorefrontSearch}
+        onExplore={handleExplore}
+        onBack={handleBack}
+      />
+    </main>
   );
 }
