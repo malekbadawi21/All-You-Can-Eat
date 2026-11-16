@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseQuery } from "@/lib/parseQuery";
-import { getRestaurant, getAllRestaurants, getMenuItems, getSlots } from "@/lib/db";
-import { recommendMeal, buildOrders } from "@/lib/optimize";
+import { getAllRestaurants, getMenu } from "@/lib/db";
+import { recommendMeal, buildOrders, type MenuItem, type Slot } from "@/lib/optimize";
 import {
   fromMealCombination,
   fromBuildOption,
@@ -50,19 +50,19 @@ export async function GET(request: NextRequest) {
         error:
           "No restaurant found in your search. Try something like 'high protein from Chick-fil-A'.",
         code: "no_restaurant",
-        available: getAllRestaurants().map((r) => r.name),
+        available: (await getAllRestaurants()).map((r) => r.name),
       },
       400
     );
   }
 
-  const restaurant = getRestaurant(slug);
-  if (!restaurant) {
+  const menu = await getMenu(slug);
+  if (!menu) {
     return fail(
       {
         error: `We don't have ${slug} yet.`,
         code: "unknown_restaurant",
-        available: getAllRestaurants().map((r) => r.name),
+        available: (await getAllRestaurants()).map((r) => r.name),
       },
       404
     );
@@ -82,17 +82,21 @@ export async function GET(request: NextRequest) {
   // it. recommendMeal() now handles an absent target the same way buildOrders()
   // always has: bound the calories, drop calorie proximity from the score.
 
+  const { restaurant } = menu;
+
+  // The seven seeded restaurants all have prices; the engine this route still
+  // calls cannot work without them. (Lifted by the engine rewrite.)
   const results =
     restaurant.type === "fixed"
       ? recommendMeal(
-          getMenuItems(restaurant.id),
+          menu.items as MenuItem[],
           goals,
           calorieTarget ?? undefined,
           3,
           budgetPriority
         ).map(fromMealCombination)
       : buildOrders(
-          getSlots(restaurant.id),
+          menu.slots as Slot[],
           goals,
           calorieTarget ?? undefined,
           budgetPriority

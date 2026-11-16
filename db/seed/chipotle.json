@@ -1,0 +1,114 @@
+{
+  "restaurant": {
+    "slug": "chipotle",
+    "name": "Chipotle",
+    "type": "build-your-own",
+    "aliases": [
+      "chipotle"
+    ],
+    "identity": {
+      "brand": "#8C2B22",
+      "trim": "#C9A227",
+      "ink": "#F5E9D0",
+      "roof": "flat",
+      "width": 12,
+      "depth": 11,
+      "height": 8
+    }
+  },
+  "sources": {
+    "nutrition": {
+      "name": "Chipotle published nutrition information",
+      "url": null,
+      "market": "US",
+      "fetched_at": "2026-07-29",
+      "method": "manual-transcription",
+      "notes": "Transcribed by hand from the restaurant's official nutrition pages. The exact page URL and retrieval date were not recorded; fetched_at is the date the figures were committed to the repository."
+    },
+    "price": {
+      "name": "US national average menu prices (multi-source audit)",
+      "url": null,
+      "market": "US national average",
+      "fetched_at": "2026-08-07",
+      "method": "manual-transcription",
+      "notes": "Approximate. National averages audited August 2026 across several price aggregators that disagree with each other; midpoints were used where they did. Real prices vary by more than a dollar between markets."
+    }
+  },
+  "slots": [
+    {
+      "name": "base",
+      "required": true,
+      "pick": "1",
+      "options": [
+        { "name": "Bowl", "calories": 0, "protein_g": 0, "fat_g": 0, "carbs_g": 0, "sodium_mg": 0, "price": 9.79 },
+        { "name": "Burrito (Flour Tortilla)", "calories": 320, "protein_g": 8, "fat_g": 9, "carbs_g": 51, "sodium_mg": 680, "price": 9.79 },
+        { "name": "Salad", "calories": 0, "protein_g": 0, "fat_g": 0, "carbs_g": 0, "sodium_mg": 0, "price": 9.79 },
+        { "name": "Tacos — Soft Flour (3)", "calories": 270, "protein_g": 6, "fat_g": 6, "carbs_g": 45, "sodium_mg": 480, "price": 9.79 },
+        { "name": "Tacos — Crispy Corn (3)", "calories": 180, "protein_g": 3, "fat_g": 3, "carbs_g": 33, "sodium_mg": 30, "price": 9.79 }
+      ]
+    },
+    {
+      "name": "protein",
+      "required": true,
+      "pick": "1",
+      "options": [
+        { "name": "Chicken", "calories": 180, "protein_g": 32, "fat_g": 7, "carbs_g": 1, "sodium_mg": 310, "price": 0 },
+        { "name": "Steak", "calories": 150, "protein_g": 21, "fat_g": 7, "carbs_g": 1, "sodium_mg": 290, "price": 1.89 },
+        { "name": "Barbacoa", "calories": 165, "protein_g": 24, "fat_g": 7, "carbs_g": 2, "sodium_mg": 460, "price": 1.89 },
+        { "name": "Carnitas", "calories": 200, "protein_g": 23, "fat_g": 12, "carbs_g": 0, "sodium_mg": 430, "price": 0.74 },
+        { "name": "Sofritas", "calories": 145, "protein_g": 8, "fat_g": 10, "carbs_g": 9, "sodium_mg": 480, "price": 0 },
+        { "name": "Chicken (Double)", "calories": 360, "protein_g": 64, "fat_g": 14, "carbs_g": 2, "sodium_mg": 620, "price": 4.6 },
+        { "name": "Steak (Double)", "calories": 300, "protein_g": 42, "fat_g": 14, "carbs_g": 2, "sodium_mg": 580, "price": 6.49 },
+        { "name": "Barbacoa (Double)", "calories": 330, "protein_g": 48, "fat_g": 14, "carbs_g": 4, "sodium_mg": 920, "price": 6.49 },
+        { "name": "Carnitas (Double)", "calories": 400, "protein_g": 46, "fat_g": 24, "carbs_g": 0, "sodium_mg": 860, "price": 5.34 },
+        { "name": "Sofritas (Double)", "calories": 290, "protein_g": 16, "fat_g": 20, "carbs_g": 18, "sodium_mg": 960, "price": 4.6 }
+      ]
+    },
+    {
+      "name": "rice",
+      "required": false,
+      "pick": "1",
+      "options": [
+        { "name": "White Rice", "calories": 210, "protein_g": 4, "fat_g": 4, "carbs_g": 40, "sodium_mg": 400, "price": 0 },
+        { "name": "Brown Rice", "calories": 210, "protein_g": 5, "fat_g": 4, "carbs_g": 40, "sodium_mg": 210, "price": 0 },
+        { "name": "White Rice (Double)", "calories": 420, "protein_g": 8, "fat_g": 8, "carbs_g": 80, "sodium_mg": 800, "price": 0 },
+        { "name": "Brown Rice (Double)", "calories": 420, "protein_g": 10, "fat_g": 8, "carbs_g": 80, "sodium_mg": 420, "price": 0 }
+      ]
+    },
+    {
+      "name": "beans",
+      "required": false,
+      "pick": "1",
+      "options": [
+        { "name": "Black Beans", "calories": 130, "protein_g": 8, "fat_g": 1, "carbs_g": 22, "sodium_mg": 210, "price": 0 },
+        { "name": "Pinto Beans", "calories": 130, "protein_g": 8, "fat_g": 1, "carbs_g": 22, "sodium_mg": 320, "price": 0 },
+        { "name": "Black Beans (Double)", "calories": 260, "protein_g": 16, "fat_g": 2, "carbs_g": 44, "sodium_mg": 420, "price": 0 },
+        { "name": "Pinto Beans (Double)", "calories": 260, "protein_g": 16, "fat_g": 2, "carbs_g": 44, "sodium_mg": 640, "price": 0 }
+      ]
+    },
+    {
+      "name": "toppings",
+      "required": false,
+      "pick": "many",
+      "options": [
+        { "name": "Cheese", "calories": 110, "protein_g": 6, "fat_g": 9, "carbs_g": 0, "sodium_mg": 180, "price": 0 },
+        { "name": "Sour Cream", "calories": 120, "protein_g": 2, "fat_g": 10, "carbs_g": 6, "sodium_mg": 30, "price": 0 },
+        { "name": "Guacamole", "calories": 230, "protein_g": 2, "fat_g": 22, "carbs_g": 8, "sodium_mg": 220, "price": 2.95 },
+        { "name": "Queso Blanco", "calories": 120, "protein_g": 5, "fat_g": 8, "carbs_g": 8, "sodium_mg": 490, "price": 1.95 },
+        { "name": "Fajita Veggies", "calories": 20, "protein_g": 1, "fat_g": 1, "carbs_g": 4, "sodium_mg": 175, "price": 0 },
+        { "name": "Romaine Lettuce", "calories": 5, "protein_g": 0, "fat_g": 0, "carbs_g": 1, "sodium_mg": 0, "price": 0 }
+      ]
+    },
+    {
+      "name": "salsa",
+      "required": false,
+      "pick": "many",
+      "options": [
+        { "name": "Fresh Tomato Salsa", "calories": 25, "protein_g": 1, "fat_g": 0, "carbs_g": 5, "sodium_mg": 480, "price": 0 },
+        { "name": "Tomatillo Green-Chili Salsa", "calories": 15, "protein_g": 0, "fat_g": 0, "carbs_g": 3, "sodium_mg": 230, "price": 0 },
+        { "name": "Tomatillo Red-Chili Salsa", "calories": 30, "protein_g": 1, "fat_g": 0, "carbs_g": 6, "sodium_mg": 500, "price": 0 },
+        { "name": "Corn Salsa", "calories": 80, "protein_g": 3, "fat_g": 1, "carbs_g": 15, "sodium_mg": 410, "price": 0 }
+      ]
+    }
+  ]
+}

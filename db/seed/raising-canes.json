@@ -1,0 +1,117 @@
+{
+  "restaurant": {
+    "slug": "raising-canes",
+    "name": "Raising Cane's",
+    "type": "build-your-own",
+    "aliases": [
+      "raising cane's",
+      "raising canes",
+      "cane's",
+      "canes"
+    ],
+    "identity": {
+      "brand": "#E8B22B",
+      "trim": "#C0392B",
+      "ink": "#3A2A12",
+      "roof": "hip",
+      "width": 12,
+      "depth": 11,
+      "height": 6.5
+    }
+  },
+  "sources": {
+    "nutrition": {
+      "name": "Raising Cane's published nutrition information",
+      "url": null,
+      "market": "US",
+      "fetched_at": "2026-07-29",
+      "method": "manual-transcription",
+      "notes": "Transcribed by hand from the restaurant's official nutrition pages. The exact page URL and retrieval date were not recorded; fetched_at is the date the figures were committed to the repository."
+    },
+    "price": {
+      "name": "US national average menu prices (multi-source audit)",
+      "url": null,
+      "market": "US national average",
+      "fetched_at": "2026-08-07",
+      "method": "manual-transcription",
+      "notes": "Approximate. National averages audited August 2026 across several price aggregators that disagree with each other; midpoints were used where they did. Real prices vary by more than a dollar between markets."
+    }
+  },
+  "slots": [
+    {
+      "name": "combo",
+      "required": true,
+      "pick": "1",
+      "options": [
+        {
+          "name": "3 Finger Combo",
+          "calories": 550,
+          "protein_g": 36,
+          "fat_g": 38,
+          "carbs_g": 19,
+          "sodium_mg": 1210,
+          "price": 10.29,
+          "pick_counts": {
+            "side": 2
+          }
+        },
+        {
+          "name": "Box Combo (4 Fingers)",
+          "calories": 670,
+          "protein_g": 48,
+          "fat_g": 44,
+          "carbs_g": 24,
+          "sodium_mg": 1500,
+          "price": 12.29,
+          "pick_counts": {
+            "side": 3
+          }
+        },
+        {
+          "name": "Caniac Combo (6 Fingers)",
+          "calories": 1100,
+          "protein_g": 72,
+          "fat_g": 76,
+          "carbs_g": 38,
+          "sodium_mg": 2420,
+          "price": 16.49,
+          "pick_counts": {
+            "side": 3
+          }
+        },
+        {
+          "name": "Sandwich Combo",
+          "calories": 720,
+          "protein_g": 29,
+          "fat_g": 38,
+          "carbs_g": 60,
+          "sodium_mg": 1240,
+          "price": 11.49,
+          "pick_counts": {
+            "side": 1
+          },
+          "price_estimated": true
+        }
+      ]
+    },
+    {
+      "name": "side",
+      "required": true,
+      "pick": "many",
+      "count_from": "combo",
+      "options": [
+        { "name": "Crinkle-Cut Fries", "calories": 290, "protein_g": 4, "fat_g": 10, "carbs_g": 46, "sodium_mg": 330, "price": 0 },
+        { "name": "Texas Toast", "calories": 150, "protein_g": 4, "fat_g": 6, "carbs_g": 21, "sodium_mg": 260, "price": 0 },
+        { "name": "Coleslaw", "calories": 140, "protein_g": 1, "fat_g": 8, "carbs_g": 18, "sodium_mg": 95, "price": 0 }
+      ]
+    },
+    {
+      "name": "extra",
+      "required": false,
+      "pick": "many",
+      "options": [
+        { "name": "Extra Chicken Finger", "calories": 120, "protein_g": 12, "fat_g": 6, "carbs_g": 5, "sodium_mg": 290, "price": 1.99 }
+      ]
+    }
+  ]
+}

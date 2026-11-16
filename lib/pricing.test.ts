@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { CHIPOTLE_SLOTS, PANDA_SLOTS, CANES_SLOTS } from "./__fixtures__/slots";
-import type { Slot } from "./db";
+import type { Slot } from "./optimize";
 
 // These assert price *relationships*, not price *amounts*.
 //

@@ -14,6 +14,10 @@ export default defineConfig({
     // @vitejs/plugin-react + @testing-library/react) on the day we write the
     // first component test.
     environment: "node",
+    // Each test file gets its own throwaway database: created in memory,
+    // migrated and seeded on first use, gone when the file finishes. Nothing a
+    // test does can leak into another file or into data/ayce.db.
+    env: { TURSO_DATABASE_URL: ":memory:" },
     include: ["lib/**/*.test.ts", "__tests__/**/*.test.ts"],
   },
 });

@@ -1,4 +1,16 @@
-import type { MenuItem } from "../db";
+import type { MenuItem } from "../optimize";
+import { profileFor } from "../mealGrammar";
+
+type RawItem = Omit<MenuItem, "role" | "daypart" | "portion_weight">;
+
+// Role, daypart and portion weight are stored columns now. These fixtures
+// predate that, so they are filled in from the category the way the old code
+// derived them — which keeps this slice testing the algorithm, not the data.
+const shaped = (items: RawItem[]): MenuItem[] =>
+  items.map((item) => {
+    const profile = profileFor(item.category);
+    return { ...item, role: profile.role, daypart: profile.daypart, portion_weight: profile.weight };
+  });
 
 // A realistic slice of the seeded Chick-fil-A menu (real nutrition numbers,
 // copied from seedIfEmpty() in lib/db.ts).
@@ -15,7 +27,7 @@ import type { MenuItem } from "../db";
 // querying the live API:
 //   - high-protein mains that crowd out every side (stacked-mains defect)
 //   - breakfast items that combine with all-day mains (daypart defect)
-export const CHICK_FIL_A: MenuItem[] = [
+export const CHICK_FIL_A: MenuItem[] = shaped([
   // ── breakfast (only served until ~10:30am) ────────────────────────────────
   { id: 1,  name: "Egg White Grill",               category: "breakfast", calories: 290, protein_g: 26, fat_g:  7, carbs_g: 30, sodium_mg:  970, price: 4.65 },
   { id: 2,  name: "Greek Yogurt Parfait",          category: "breakfast", calories: 230, protein_g: 14, fat_g:  5, carbs_g: 34, sodium_mg:   90, price: 3.35 },
@@ -37,14 +49,14 @@ export const CHICK_FIL_A: MenuItem[] = [
 
   // ── dessert ───────────────────────────────────────────────────────────────
   { id: 14, name: "Icedream Cone",                 category: "dessert",   calories: 170, protein_g:  4, fat_g:  4, carbs_g: 28, sodium_mg:   90, price: 1.55 },
-];
+]);
 
 // A slice of the seeded McDonald's menu. Kept separate from CHICK_FIL_A
 // because it exposes a different defect: McDonald's has one item that towers
 // over the rest on protein (the Double Quarter Pounder, 48g), so the top
 // results collapse into variations on that single item. Chick-fil-A's menu is
 // flatter and doesn't show the problem as sharply.
-export const MCDONALDS: MenuItem[] = [
+export const MCDONALDS: MenuItem[] = shaped([
   // ── burgers ───────────────────────────────────────────────────────────────
   { id: 101, name: "Hamburger",                          category: "burger",    calories: 250, protein_g: 13, fat_g:  9, carbs_g: 31, sodium_mg:  510, price: 1.69 },
   { id: 102, name: "Cheeseburger",                       category: "burger",    calories: 300, protein_g: 15, fat_g: 13, carbs_g: 32, sodium_mg:  680, price: 1.99 },
@@ -72,4 +84,4 @@ export const MCDONALDS: MenuItem[] = [
   // ── breakfast / dessert ───────────────────────────────────────────────────
   { id: 117, name: "Egg McMuffin",                        category: "breakfast", calories: 310, protein_g: 17, fat_g: 13, carbs_g: 30, sodium_mg:  740, price: 4.99 },
   { id: 118, name: "Baked Apple Pie",                     category: "dessert",   calories: 240, protein_g:  2, fat_g: 11, carbs_g: 33, sodium_mg:   95, price: 1.29 },
-];
+]);

@@ -17,11 +17,17 @@
 //   2. shapeOf()     — classify the rest, so results can span several shapes
 //                      instead of five variations on one idea
 //
-// NOTE ON THE SCHEMA: `category` is overloaded in the current data — it mixes
-// daypart ("breakfast"), role ("side", "dessert") and form factor ("taco",
-// "burrito"). That's why role/daypart/weight are derived here rather than
-// stored. When the data layer is rebuilt for dynamic menu ingestion, these
-// become real columns and CATEGORY_PROFILES becomes the seed for them.
+// WHERE THE FACTS LIVE: role, daypart and portion weight are stored on each
+// item (real columns — see db/migrations/0001_init.ts). They used to be derived
+// here from `category`, which mixes daypart ("breakfast"), role ("side") and
+// form factor ("taco") in one word; that is how a 15-calorie "Side Salad" filed
+// under `salad` came to count as a full main course. The grammar now reads the
+// stored facts and judges nothing from the category at all.
+//
+// CATEGORY_PROFILES survives as the *classifier*: when a menu arrives without
+// those fields (dynamic ingestion), classifyItem() proposes them from the
+// category and the item's name, and the result is stored where a human can
+// correct it.
 
 export type MealRole = "main" | "side" | "dessert";
 export type Daypart = "breakfast" | "all-day";
@@ -45,9 +51,15 @@ export interface CategoryProfile {
   weight: number;
 }
 
-/** Anything with a category can be reasoned about here — no nutrition needed. */
-export interface CategorizedItem {
-  category: string;
+/**
+ * Everything the grammar needs to know about an item. No nutrition, no name,
+ * no category — an order's shape depends only on these three facts.
+ */
+export interface ShapedItem {
+  role: MealRole;
+  daypart: Daypart;
+  /** See CategoryProfile.weight. */
+  portion_weight: number;
 }
 
 const MAIN = (weight: number, daypart: Daypart = "all-day"): CategoryProfile => ({
@@ -102,6 +114,87 @@ export function profileFor(category: string): CategoryProfile {
   return CATEGORY_PROFILES[category.toLowerCase()] ?? DEFAULT_PROFILE;
 }
 
+// ── Classifying an item nobody has classified yet ────────────────────────────
+//
+// Used when a menu is ingested without role/daypart/weight. Rules are checked
+// top to bottom and the first match wins, so the specific ones sit above the
+// general ones: "Side Salad" has to be caught as a side before the word
+// "salad" files it under mains, which is the exact mistake the old
+// category-only scheme made.
+//
+// This is a proposal, not a verdict. Whatever it returns is written to the
+// database as plain columns, where a wrong guess is a one-row fix.
+
+interface NameRule {
+  pattern: RegExp;
+  category: string;
+  profile: CategoryProfile;
+}
+
+const SIDE: CategoryProfile = { role: "side", daypart: "all-day", weight: 0.25 };
+const BREAKFAST_SIDE: CategoryProfile = { role: "side", daypart: "breakfast", weight: 0.25 };
+const DESSERT: CategoryProfile = { role: "dessert", daypart: "all-day", weight: 0.25 };
+
+const NAME_RULES: NameRule[] = [
+  // Breakfast sides before anything else mentions potatoes.
+  { pattern: /\bhash ?browns?\b|\bhash brown sticks\b/, category: "breakfast", profile: BREAKFAST_SIDE },
+
+  // Sweet things. "Shake" before "cake" so "pancakes" is not a dessert.
+  { pattern: /\b(milk)?shakes?\b|\bmcflurry\b|\bfrosty\b|\bsundaes?\b|\bcones?\b|\bice ?cream\b|\bcookies?\b|\bbrownies?\b|\bdonuts?\b|\bdoughnuts?\b|\bchurros?\b|\bcinnamon (roll|twists?|sticks?)\b|\bcinnabon\b|\b(apple|cherry|pecan|pumpkin) pie\b|\bturnover\b|\bcheesecake\b|\bfrozen custard\b/, category: "dessert", profile: DESSERT },
+
+  // Breakfast mains.
+  { pattern: /\bbreakfast\b|\bmcmuffin\b|\bmcgriddles?\b|\bbiscuit (sandwich|with)\b|\b(egg|sausage|bacon)[^,]* biscuit\b|\bhotcakes?\b|\bpancakes?\b|\bfrench toast\b|\bcroissan'?wich\b|\bomelet(te)?\b|\bscrambler?\b|\boatmeal\b|\byogurt parfait\b/, category: "breakfast", profile: MAIN(0.75, "breakfast") },
+
+  // Sides.
+  { pattern: /\bside salad\b|\bfries\b|\bfrench fr(y|ied)\b|\bonion rings\b|\btots\b|\bpotato wedges\b|\bmashed potato(es)?\b|\bcole ?slaw\b|\bapple slices\b|\bfruit cup\b|\bmac(aroni)? (&|and|n) cheese\b|\bbreadsticks?\b|\bgarlic bread\b|\btexas toast\b|\bbiscuit\b|\bcorn on the cob\b|\bgreen beans\b|\bbaked beans\b|\bchips\b|\bside of\b|\brice\b(?! bowl)/, category: "side", profile: SIDE },
+
+  // Light mains — the things people order several of.
+  { pattern: /\btacos?\b/, category: "taco", profile: MAIN(0.35) },
+  { pattern: /\bsliders?\b|\bwings?\b|\bslice\b/, category: "entree", profile: MAIN(0.5) },
+
+  // Full mains, named by form so results can group them.
+  { pattern: /\bburgers?\b|\bwhopper\b|\bbig mac\b|\bquarter pounder\b|\bmcdouble\b/, category: "burger", profile: MAIN(1.0) },
+  { pattern: /\bsandwich\b|\bsub\b|\bmelt\b|\bfilet\b|\bhot dog\b|\bgyro\b/, category: "sandwich", profile: MAIN(1.0) },
+  { pattern: /\bwraps?\b/, category: "wrap", profile: MAIN(1.0) },
+  { pattern: /\bburritos?\b/, category: "burrito", profile: MAIN(1.0) },
+  { pattern: /\bquesadillas?\b/, category: "quesadilla", profile: MAIN(1.0) },
+  { pattern: /\bnachos\b/, category: "nachos", profile: MAIN(1.0) },
+  { pattern: /\bbowl\b/, category: "bowl", profile: MAIN(1.0) },
+  { pattern: /\bsalad\b/, category: "salad", profile: MAIN(1.0) },
+  { pattern: /\bnuggets?\b|\bstrips?\b|\btenders?\b|\bfingers?\b|\bpopcorn chicken\b|\bfried chicken\b|\bdrumstick\b|\bbreast\b|\bthigh\b/, category: "entree", profile: MAIN(1.0) },
+  { pattern: /\bpizza\b/, category: "pizza", profile: MAIN(1.0) },
+];
+
+export interface Classification extends CategoryProfile {
+  category: string;
+}
+
+/**
+ * Proposes a category, role, daypart and portion weight for an item.
+ *
+ * A category the profile table already knows is trusted unless the name plainly
+ * contradicts it (the Side Salad case); otherwise the name decides. Anything
+ * unrecognised falls through to a full all-day main, for the reason given on
+ * DEFAULT_PROFILE.
+ */
+export function classifyItem(name: string, category?: string): Classification {
+  const lower = name.toLowerCase();
+  const byName = NAME_RULES.find((rule) => rule.pattern.test(lower));
+  const known = category ? CATEGORY_PROFILES[category.toLowerCase()] : undefined;
+
+  if (known && category) {
+    // A stated category wins on what *kind* of thing this is, but a name that
+    // says "side" or "dessert" overrules a category that says "main".
+    if (byName && byName.profile.role !== "main" && known.role === "main") {
+      return { category: category.toLowerCase(), ...byName.profile, daypart: known.daypart === "breakfast" ? "breakfast" : byName.profile.daypart };
+    }
+    return { category: category.toLowerCase(), ...known };
+  }
+
+  if (byName) return { category: category?.toLowerCase() ?? byName.category, ...byName.profile };
+  return { category: category?.toLowerCase() ?? "item", ...DEFAULT_PROFILE };
+}
+
 // ── Tunable limits ───────────────────────────────────────────────────────────
 
 /**
@@ -120,21 +213,21 @@ const MAX_DESSERTS = 1;
 
 // ── Derived facts about a set of items ───────────────────────────────────────
 
-export function portionWeight(items: CategorizedItem[]): number {
-  return items.reduce((sum, item) => sum + profileFor(item.category).weight, 0);
+export function portionWeight(items: ShapedItem[]): number {
+  return items.reduce((sum, item) => sum + item.portion_weight, 0);
 }
 
-function countByRole(items: CategorizedItem[]): Record<MealRole, number> {
+function countByRole(items: ShapedItem[]): Record<MealRole, number> {
   const counts: Record<MealRole, number> = { main: 0, side: 0, dessert: 0 };
-  for (const item of items) counts[profileFor(item.category).role]++;
+  for (const item of items) counts[item.role]++;
   return counts;
 }
 
-function mainWeight(items: CategorizedItem[]): number {
-  return items.reduce((sum, item) => {
-    const profile = profileFor(item.category);
-    return profile.role === "main" ? sum + profile.weight : sum;
-  }, 0);
+function mainWeight(items: ShapedItem[]): number {
+  return items.reduce(
+    (sum, item) => (item.role === "main" ? sum + item.portion_weight : sum),
+    0
+  );
 }
 
 // ── The two public questions ─────────────────────────────────────────────────
@@ -148,7 +241,7 @@ function mainWeight(items: CategorizedItem[]): number {
  * stacking two mains is allowed: "two Chick-fil-A sandwiches" is a real order
  * for a real person, and banning it would be the algorithm imposing taste.
  */
-export function isCoherent(items: CategorizedItem[]): boolean {
+export function isCoherent(items: ShapedItem[]): boolean {
   if (items.length === 0) return false;
 
   const counts = countByRole(items);
@@ -166,14 +259,11 @@ export function isCoherent(items: CategorizedItem[]): boolean {
   // Daypart: a breakfast item cannot share an order with an all-day main,
   // because the two are not on sale at the same time. Breakfast alongside a
   // side or dessert is fine — a parfait with hash browns is a real order.
-  const hasBreakfast = items.some(
-    (item) => profileFor(item.category).daypart === "breakfast"
-  );
+  const hasBreakfast = items.some((item) => item.daypart === "breakfast");
   if (hasBreakfast) {
-    const hasAllDayMain = items.some((item) => {
-      const profile = profileFor(item.category);
-      return profile.role === "main" && profile.daypart === "all-day";
-    });
+    const hasAllDayMain = items.some(
+      (item) => item.role === "main" && item.daypart === "all-day"
+    );
     if (hasAllDayMain) return false;
   }
 
@@ -187,7 +277,7 @@ export function isCoherent(items: CategorizedItem[]): boolean {
  * fries" is a stack that happens to include a side, and calling it a stack is
  * the more useful description.
  */
-export function shapeOf(items: CategorizedItem[]): MealShape | null {
+export function shapeOf(items: ShapedItem[]): MealShape | null {
   if (!isCoherent(items)) return null;
 
   if (mainWeight(items) >= STACK_THRESHOLD) return "stack";
@@ -223,9 +313,9 @@ export const SHAPE_LABELS: Record<MealShape, string> = {
  * every main are variations on one idea however much their sides differ, which
  * is what let a single strong item fill four of five result slots.
  */
-export function mainSignature(items: (CategorizedItem & { name: string })[]): string[] {
+export function mainSignature(items: (ShapedItem & { name: string })[]): string[] {
   return items
-    .filter((item) => profileFor(item.category).role === "main")
+    .filter((item) => item.role === "main")
     .map((item) => item.name)
     .sort();
 }

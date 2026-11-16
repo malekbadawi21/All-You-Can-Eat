@@ -20,10 +20,12 @@
 
 export type RoofStyle = "hip" | "flat" | "gable" | "pagoda" | "aframe";
 
-export interface RestaurantIdentity {
-  /** Matches the slug used by parseQuery and the restaurants table. */
-  slug: string;
-  name: string;
+/**
+ * How a storefront looks. This is what the database stores per restaurant (as
+ * JSON) and what a menu document may carry; everything about *where* it stands
+ * is worked out separately by placeRestaurants() below.
+ */
+export interface StorefrontIdentity {
   /** Body and sign colour — the thing you recognise from a distance. */
   brand: string;
   /** Roof, awning and accent colour. */
@@ -35,12 +37,18 @@ export interface RestaurantIdentity {
    */
   ink: string;
   roof: RoofStyle;
-  side: "left" | "right";
   /** Frontage along the street, in world units. */
   width: number;
   /** How far back from the pavement the building runs. */
   depth: number;
   height: number;
+}
+
+export interface RestaurantIdentity extends StorefrontIdentity {
+  /** Matches the slug used by parseQuery and the restaurants table. */
+  slug: string;
+  name: string;
+  side: "left" | "right";
 }
 
 // ── Street geometry ──────────────────────────────────────────────────────────

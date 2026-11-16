@@ -1,0 +1,115 @@
+{
+  "restaurant": {
+    "slug": "panda-express",
+    "name": "Panda Express",
+    "type": "build-your-own",
+    "aliases": [
+      "panda express",
+      "pandaexpress",
+      "panda"
+    ],
+    "identity": {
+      "brand": "#C8102E",
+      "trim": "#3A3A3A",
+      "ink": "#FBF7F0",
+      "roof": "pagoda",
+      "width": 13,
+      "depth": 11,
+      "height": 6
+    }
+  },
+  "sources": {
+    "nutrition": {
+      "name": "Panda Express published nutrition information",
+      "url": null,
+      "market": "US",
+      "fetched_at": "2026-07-29",
+      "method": "manual-transcription",
+      "notes": "Transcribed by hand from the restaurant's official nutrition pages. The exact page URL and retrieval date were not recorded; fetched_at is the date the figures were committed to the repository."
+    },
+    "price": {
+      "name": "US national average menu prices (multi-source audit)",
+      "url": null,
+      "market": "US national average",
+      "fetched_at": "2026-08-07",
+      "method": "manual-transcription",
+      "notes": "Approximate. National averages audited August 2026 across several price aggregators that disagree with each other; midpoints were used where they did. Real prices vary by more than a dollar between markets."
+    }
+  },
+  "slots": [
+    {
+      "name": "base",
+      "required": true,
+      "pick": "1",
+      "options": [
+        {
+          "name": "Bowl (1 Entree + 1 Side)",
+          "calories": 0,
+          "protein_g": 0,
+          "fat_g": 0,
+          "carbs_g": 0,
+          "sodium_mg": 0,
+          "price": 9.3,
+          "pick_counts": {
+            "entree": 1
+          }
+        },
+        {
+          "name": "Plate (2 Entrees + 1 Side)",
+          "calories": 0,
+          "protein_g": 0,
+          "fat_g": 0,
+          "carbs_g": 0,
+          "sodium_mg": 0,
+          "price": 11.1,
+          "pick_counts": {
+            "entree": 2
+          }
+        },
+        {
+          "name": "Bigger Plate (3 Entrees + 1 Side)",
+          "calories": 0,
+          "protein_g": 0,
+          "fat_g": 0,
+          "carbs_g": 0,
+          "sodium_mg": 0,
+          "price": 12.9,
+          "pick_counts": {
+            "entree": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "entree",
+      "required": true,
+      "pick": "many",
+      "count_from": "base",
+      "options": [
+        { "name": "Orange Chicken", "calories": 490, "protein_g": 26, "fat_g": 22, "carbs_g": 51, "sodium_mg": 830, "price": 0 },
+        { "name": "SweetFire Chicken Breast", "calories": 380, "protein_g": 17, "fat_g": 12, "carbs_g": 52, "sodium_mg": 370, "price": 0 },
+        { "name": "String Bean Chicken Breast", "calories": 190, "protein_g": 14, "fat_g": 9, "carbs_g": 15, "sodium_mg": 730, "price": 0 },
+        { "name": "Mushroom Chicken", "calories": 220, "protein_g": 13, "fat_g": 12, "carbs_g": 17, "sodium_mg": 810, "price": 0 },
+        { "name": "Kung Pao Chicken", "calories": 290, "protein_g": 18, "fat_g": 18, "carbs_g": 14, "sodium_mg": 840, "price": 0 },
+        { "name": "Grilled Teriyaki Chicken", "calories": 300, "protein_g": 36, "fat_g": 13, "carbs_g": 8, "sodium_mg": 530, "price": 0 },
+        { "name": "Broccoli Beef", "calories": 150, "protein_g": 9, "fat_g": 7, "carbs_g": 14, "sodium_mg": 530, "price": 0 },
+        { "name": "Beijing Beef", "calories": 470, "protein_g": 14, "fat_g": 26, "carbs_g": 47, "sodium_mg": 690, "price": 0 },
+        { "name": "Honey Walnut Shrimp", "calories": 360, "protein_g": 14, "fat_g": 23, "carbs_g": 26, "sodium_mg": 490, "price": 1.5 },
+        { "name": "Black Pepper Sirloin Steak", "calories": 180, "protein_g": 19, "fat_g": 9, "carbs_g": 9, "sodium_mg": 1010, "price": 1.5 },
+        { "name": "Eggplant Tofu", "calories": 340, "protein_g": 7, "fat_g": 24, "carbs_g": 26, "sodium_mg": 640, "price": 0 }
+      ]
+    },
+    {
+      "name": "side",
+      "required": true,
+      "pick": "1",
+      "options": [
+        { "name": "Fried Rice", "calories": 620, "protein_g": 13, "fat_g": 21, "carbs_g": 88, "sodium_mg": 940, "price": 0 },
+        { "name": "Chow Mein", "calories": 600, "protein_g": 13, "fat_g": 23, "carbs_g": 87, "sodium_mg": 980, "price": 0 },
+        { "name": "White Steamed Rice", "calories": 380, "protein_g": 7, "fat_g": 0, "carbs_g": 86, "sodium_mg": 0, "price": 0 },
+        { "name": "Brown Steamed Rice", "calories": 380, "protein_g": 9, "fat_g": 1, "carbs_g": 83, "sodium_mg": 15, "price": 0 },
+        { "name": "Super Greens", "calories": 90, "protein_g": 6, "fat_g": 3, "carbs_g": 13, "sodium_mg": 360, "price": 0 }
+      ]
+    }
+  ]
+}

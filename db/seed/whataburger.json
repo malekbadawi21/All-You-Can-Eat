@@ -1,0 +1,66 @@
+{
+  "restaurant": {
+    "slug": "whataburger",
+    "name": "Whataburger",
+    "type": "fixed",
+    "aliases": [
+      "whataburger"
+    ],
+    "identity": {
+      "brand": "#EA580C",
+      "trim": "#FBF7F0",
+      "ink": "#FFF6EC",
+      "roof": "aframe",
+      "width": 13,
+      "depth": 12,
+      "height": 5
+    }
+  },
+  "sources": {
+    "nutrition": {
+      "name": "Whataburger published nutrition information",
+      "url": null,
+      "market": "US",
+      "fetched_at": "2026-07-29",
+      "method": "manual-transcription",
+      "notes": "Transcribed by hand from the restaurant's official nutrition pages. The exact page URL and retrieval date were not recorded; fetched_at is the date the figures were committed to the repository."
+    },
+    "price": {
+      "name": "US national average menu prices (multi-source audit)",
+      "url": null,
+      "market": "US national average",
+      "fetched_at": "2026-08-07",
+      "method": "manual-transcription",
+      "notes": "Approximate. National averages audited August 2026 across several price aggregators that disagree with each other; midpoints were used where they did. Real prices vary by more than a dollar between markets."
+    }
+  },
+  "items": [
+    { "name": "Whataburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 580, "protein_g": 29, "fat_g": 25, "carbs_g": 63, "sodium_mg": 1110, "price": 6.89 },
+    { "name": "Whataburger Jr.", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 340, "protein_g": 16, "fat_g": 14, "carbs_g": 38, "sodium_mg": 630, "price": 3.99 },
+    { "name": "Double Whataburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 840, "protein_g": 48, "fat_g": 42, "carbs_g": 66, "sodium_mg": 1390, "price": 8.99 },
+    { "name": "Triple Whataburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 1080, "protein_g": 67, "fat_g": 60, "carbs_g": 68, "sodium_mg": 1670, "price": 11.99 },
+    { "name": "Patty Melt", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 870, "protein_g": 41, "fat_g": 52, "carbs_g": 59, "sodium_mg": 1430, "price": 8.49 },
+    { "name": "Avocado Bacon Burger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 670, "protein_g": 32, "fat_g": 36, "carbs_g": 55, "sodium_mg": 1160, "price": 8.49 },
+    { "name": "Mushroom Swiss Burger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 760, "protein_g": 37, "fat_g": 41, "carbs_g": 64, "sodium_mg": 1140, "price": 8.49 },
+    { "name": "Bacon Whataburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 640, "protein_g": 32, "fat_g": 31, "carbs_g": 65, "sodium_mg": 1360, "price": 8.49 },
+    { "name": "Jalapeño & Cheese Whataburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 620, "protein_g": 30, "fat_g": 28, "carbs_g": 67, "sodium_mg": 1230, "price": 7.49 },
+    { "name": "Grilled Chicken Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 380, "protein_g": 36, "fat_g": 10, "carbs_g": 39, "sodium_mg": 910, "price": 6.49 },
+    { "name": "Spicy Chicken Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 480, "protein_g": 28, "fat_g": 18, "carbs_g": 52, "sodium_mg": 1300, "price": 6.49 },
+    { "name": "Crispy Chicken Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 590, "protein_g": 27, "fat_g": 28, "carbs_g": 57, "sodium_mg": 1320, "price": 6.49 },
+    { "name": "Honey BBQ Chicken Strip Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 770, "protein_g": 38, "fat_g": 30, "carbs_g": 90, "sodium_mg": 1790, "price": 7.49 },
+    { "name": "Chicken Strips (3 pc)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 370, "protein_g": 24, "fat_g": 14, "carbs_g": 38, "sodium_mg": 970, "price": 6.99 },
+    { "name": "Chicken Strips (5 pc)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 620, "protein_g": 40, "fat_g": 23, "carbs_g": 63, "sodium_mg": 1610, "price": 9.99 },
+    { "name": "French Fries (Small)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 280, "protein_g": 4, "fat_g": 13, "carbs_g": 37, "sodium_mg": 310, "price": 2.49 },
+    { "name": "French Fries (Medium)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 380, "protein_g": 5, "fat_g": 18, "carbs_g": 50, "sodium_mg": 430, "price": 3.49 },
+    { "name": "French Fries (Large)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 560, "protein_g": 8, "fat_g": 26, "carbs_g": 74, "sodium_mg": 620, "price": 3.99 },
+    { "name": "Onion Rings (Medium)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 430, "protein_g": 5, "fat_g": 22, "carbs_g": 53, "sodium_mg": 600, "price": 3.79 },
+    { "name": "Apple Slices", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 30, "protein_g": 0, "fat_g": 0, "carbs_g": 8, "sodium_mg": 0, "price": 1.49 },
+    { "name": "Breakfast on a Bun (Egg & Cheese)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 370, "protein_g": 18, "fat_g": 21, "carbs_g": 29, "sodium_mg": 830, "price": 4.99 },
+    { "name": "Breakfast on a Bun (Sausage)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 530, "protein_g": 22, "fat_g": 34, "carbs_g": 31, "sodium_mg": 1050, "price": 5.49 },
+    { "name": "Taquito with Egg & Cheese", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 380, "protein_g": 14, "fat_g": 17, "carbs_g": 43, "sodium_mg": 900, "price": 4.99 },
+    { "name": "Pancakes (3 ct)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 580, "protein_g": 14, "fat_g": 18, "carbs_g": 90, "sodium_mg": 1570, "price": 5.99 },
+    { "name": "Hash Brown Sticks (6 ct)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 270, "protein_g": 3, "fat_g": 15, "carbs_g": 32, "sodium_mg": 830, "price": 2.99 },
+    { "name": "Cinnamon Roll", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 490, "protein_g": 8, "fat_g": 14, "carbs_g": 82, "sodium_mg": 490, "price": 3.49 },
+    { "name": "Hot Apple Pie", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 230, "protein_g": 2, "fat_g": 11, "carbs_g": 33, "sodium_mg": 240, "price": 1.99 }
+  ]
+}

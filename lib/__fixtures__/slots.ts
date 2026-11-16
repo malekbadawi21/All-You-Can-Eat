@@ -1,4 +1,4 @@
-import type { Slot } from "../db";
+import type { Slot } from "../optimize";
 
 // Build-your-own slot definitions, generated from the seeded database so the
 // numbers match production exactly (see seedIfEmpty() in lib/db.ts).

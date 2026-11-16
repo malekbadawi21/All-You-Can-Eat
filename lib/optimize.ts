@@ -1,4 +1,16 @@
-import type { MenuItem, Slot, ComponentOption } from "./db";
+import type {
+  MenuItem as StoredMenuItem,
+  Slot as StoredSlot,
+  ComponentOption as StoredComponentOption,
+} from "./db";
+
+// Prices are nullable in the database (a restaurant ingested from a
+// nutrition-only source has none). This engine predates that and does
+// arithmetic on every price, so it works on the priced subtypes; the search
+// route is responsible for only handing it menus where every price is known.
+export type MenuItem = StoredMenuItem & { price: number };
+export type ComponentOption = StoredComponentOption & { price: number };
+export type Slot = Omit<StoredSlot, "options"> & { options: ComponentOption[] };
 import type { Goal, NutrientKey } from "./parseQuery";
 import {
   shapeOf,
