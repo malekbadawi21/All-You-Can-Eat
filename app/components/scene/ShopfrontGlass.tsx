@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { OrderResult } from "@/lib/searchResult";
 import { useBoardTexture, BOARD_ASPECT, type BoardContent } from "./boardTexture";
@@ -63,6 +63,7 @@ function Bay({
   width,
   height,
   y,
+  active,
 }: {
   content: BoardContent;
   brand: string;
@@ -72,6 +73,8 @@ function Bay({
   width: number;
   height: number;
   y: number;
+  /** True while the matching order is being looked at in the panel. */
+  active: boolean;
 }) {
   // A bay with nothing to say stays plain glass rather than showing an empty
   // card. Seven storefronts all displaying "tell us what you're after" would
@@ -81,19 +84,25 @@ function Bay({
 
   const materialRef = useRef<THREE.MeshBasicMaterial>(null);
   const fade = useRef(0);
+  const invalidate = useThree((s) => s.invalidate);
 
   // Restart the fade whenever a new face arrives, so swapping results reads as
   // the window changing rather than as a hard cut.
   useEffect(() => {
     fade.current = 0;
-  }, [texture]);
+    invalidate();
+  }, [texture, invalidate]);
 
   useFrame((_, delta) => {
     const material = materialRef.current;
     if (!material || !texture) return;
     if (fade.current < 1) {
-      fade.current = Math.min(1, fade.current + delta * 3);
+      // Clamped: on a demand-driven loop the first frame after an idle spell
+      // reports a huge delta, which would skip the fade entirely.
+      fade.current = Math.min(1, fade.current + Math.min(delta, 0.05) * 3);
       material.opacity = fade.current;
+      // The canvas only draws when asked, so the fade asks for its own frames.
+      invalidate();
     }
   });
 
@@ -102,7 +111,17 @@ function Bay({
       {/* Frame */}
       <mesh position={[faceX + 0.06, 0, 0]} castShadow>
         <boxGeometry args={[0.18, height + 0.34, width + 0.34]} />
-        <meshStandardMaterial color={MULLION} roughness={1} metalness={0} flatShading />
+        <meshStandardMaterial
+          // The frame takes the restaurant's own colour while its order is
+          // the one under the pointer in the panel, tying the card on the
+          // right to the window on the left.
+          color={active ? brand : MULLION}
+          emissive={brand}
+          emissiveIntensity={active ? 0.55 : 0}
+          roughness={1}
+          metalness={0}
+          flatShading
+        />
       </mesh>
 
       {/* Glazing */}
@@ -137,6 +156,7 @@ export default function ShopfrontGlass({
   ink,
   results,
   message,
+  active,
 }: {
   layout: GlassBayLayout;
   /** Local X of the building's front face. */
@@ -145,14 +165,20 @@ export default function ShopfrontGlass({
   ink: string;
   results: OrderResult[] | null;
   message: string;
+  active: number | null;
 }) {
   return (
     <group>
-      {layout.centres.map((z, i) => (
+      {layout.centres.map((z, i) => {
+        // Bays are laid out from the door outward, and the door is on the
+        // viewer's right. Reading order is left to right, so the first result
+        // goes in the bay furthest from the door.
+        const order = layout.centres.length - 1 - i;
+        return (
         <Bay
           key={i}
           content={{
-            result: results?.[i] ?? null,
+            result: results?.[order] ?? null,
             // Only the focused restaurant is given a message; everywhere else
             // it is empty, which keeps the glass clear.
             message: results ? undefined : message,
@@ -164,8 +190,10 @@ export default function ShopfrontGlass({
           width={layout.width}
           height={layout.height}
           y={layout.y}
+          active={active === order}
         />
-      ))}
+        );
+      })}
     </group>
   );
 }

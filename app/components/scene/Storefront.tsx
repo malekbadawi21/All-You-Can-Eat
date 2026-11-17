@@ -210,6 +210,7 @@ function Facade({
   ink,
   results,
   boardMessage,
+  activeBoard,
   spread = 1,
 }: {
   name: string;
@@ -221,6 +222,7 @@ function Facade({
   ink: string;
   results: OrderResult[] | null;
   boardMessage: string;
+  activeBoard: number | null;
   /**
    * Shrinks everything laterally. An A-frame's front is a triangle, so a
    * full-width shopfront would push straight out through its sloping sides —
@@ -267,6 +269,7 @@ function Facade({
         ink={ink}
         results={results}
         message={boardMessage}
+        active={activeBoard}
       />
 
       {/* Awning — a slab tipped forward over the shopfront. The tilt is what
@@ -288,7 +291,9 @@ function Facade({
       </mesh>
       <mesh position={[face + 0.42, height * 0.74, 0]}>
         <boxGeometry args={[0.12, SIGN_PANEL_HEIGHT, letterWidth]} />
-        <meshStandardMaterial color={brand} roughness={1} metalness={0} flatShading />
+        {/* Unlit, like the lettering on it: a sign's face is the brand colour
+            whichever way the building happens to face the sun. */}
+        <meshBasicMaterial color={brand} toneMapped={false} />
       </mesh>
 
       {/* The name. A plane is authored facing +Z, so a quarter turn about Y
@@ -317,6 +322,8 @@ interface StorefrontProps {
   results: OrderResult[] | null;
   /** Board text when there is nothing to show. */
   boardMessage: string;
+  /** Which of the three boards to highlight, if any. */
+  activeBoard: number | null;
 }
 
 export default function Storefront({
@@ -325,6 +332,7 @@ export default function Storefront({
   onSelect,
   results,
   boardMessage,
+  activeBoard,
 }: StorefrontProps) {
   const { name, brand, trim, ink, roof, width, depth, height, position, rotation } =
     placement;
@@ -395,6 +403,7 @@ export default function Storefront({
         ink={ink}
         results={results}
         boardMessage={boardMessage}
+        activeBoard={activeBoard}
         // The A-frame narrows as it rises, so its shopfront has to pull in
         // further than the awning alone needed — the outer bays would
         // otherwise poke through the sloping sides.

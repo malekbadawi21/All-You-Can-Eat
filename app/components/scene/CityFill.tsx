@@ -1,20 +1,12 @@
 "use client";
 
 import { CITY } from "./palette";
-import {
-  FILLERS,
-  LAMPS,
-  TREES,
-  BENCHES,
-  CARS,
-  type FillerBuilding,
-  type StreetProp,
-} from "./cityLayout";
+import { type City, type FillerBuilding, type StreetProp } from "./cityLayout";
 
 // ── The block around the restaurants ─────────────────────────────────────────
 //
 // Anonymous buildings, street furniture and parked cars. All of it is drawn
-// from the plain data in cityLayout.ts, so nothing here decides *where*
+// from the plain data buildCity() returns, so nothing here decides *where*
 // anything goes — only what it looks like.
 //
 // Same local convention as Storefront: each object is authored facing +X and
@@ -171,22 +163,22 @@ function Car({ p }: { p: StreetProp }) {
   );
 }
 
-export default function CityFill() {
+export default function CityFill({ city }: { city: City }) {
   return (
     <group>
-      {FILLERS.map((b, i) => (
+      {city.fillers.map((b, i) => (
         <Filler key={`f${i}`} b={b} />
       ))}
-      {LAMPS.map((p, i) => (
+      {city.lamps.map((p, i) => (
         <Lamp key={`l${i}`} p={p} />
       ))}
-      {TREES.map((p, i) => (
+      {city.trees.map((p, i) => (
         <Tree key={`t${i}`} p={p} />
       ))}
-      {BENCHES.map((p, i) => (
+      {city.benches.map((p, i) => (
         <Bench key={`b${i}`} p={p} />
       ))}
-      {CARS.map((p, i) => (
+      {city.cars.map((p, i) => (
         <Car key={`c${i}`} p={p} />
       ))}
     </group>

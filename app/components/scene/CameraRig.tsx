@@ -13,14 +13,13 @@
  * component drives, so there is no shared value to become inconsistent.
  */
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
 import { BUILDING_LINE } from "@/lib/restaurants";
-import { BLOCK_NEAR, BLOCK_FAR } from "./cityLayout";
 import { lookQuaternion, ROAM_HEIGHT, type CameraPose } from "./cameraPoses";
-import { pointerState } from "./pointerState";
+import { moveInput, pointerState } from "./pointerState";
 
 // ── One camera, four behaviours ──────────────────────────────────────────────
 //
@@ -36,6 +35,14 @@ import { pointerState } from "./pointerState";
 //
 // Nothing here is React state. Camera work happens every frame, and driving it
 // through state would re-render the whole scene sixty times a second.
+//
+// RENDERING ON DEMAND. The canvas runs with frameloop="demand": a frame is
+// drawn only when something asks for one. A parked camera looking at a static
+// street has nothing to redraw, and redrawing it anyway sixty times a second
+// is what makes a laptop fan spin up on a page that isn't moving. So the last
+// thing every frame does is decide whether another is needed, and anything
+// that starts motion from outside the loop — a key, a drag, a new destination
+// — calls invalidate() to wake it.
 
 export type CameraMode = "home" | "roam" | "flying" | "focused";
 
@@ -43,6 +50,8 @@ interface Flight {
   curve: THREE.CatmullRomCurve3;
   fromQuat: THREE.Quaternion;
   toQuat: THREE.Quaternion;
+  fromFov: number;
+  toFov: number;
   duration: number;
   elapsed: number;
 }
@@ -61,6 +70,18 @@ interface Props {
   /** Kept current every frame, so the parent can snapshot where to fly back to. */
   poseRef: RefObject<CameraPose>;
   onFlightComplete: () => void;
+  /** Where the camera is when the page first appears. */
+  initial: CameraPose;
+  /**
+   * Lens shift, as fractions of the viewport (x < 0 slides the picture left,
+   * y > 0 slides it up). Used to centre the subject in whatever part of the
+   * screen the panel leaves free. See cameraPoses.frameShift.
+   */
+  shift: { x: number; y: number };
+  /** Reduced motion: arrive instead of travelling. */
+  instant: boolean;
+  /** Z extent of the street the roaming camera may walk. */
+  bounds: { near: number; far: number };
 }
 
 /** Slow at both ends, quick through the middle — the shape of a camera move. */
@@ -104,14 +125,42 @@ export default function CameraRig({
   flightKey,
   poseRef,
   onFlightComplete,
+  initial,
+  shift,
+  instant,
+  bounds,
 }: Props) {
-  const { camera, gl } = useThree();
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
+  const gl = useThree((s) => s.gl);
+  const size = useThree((s) => s.size);
+  const invalidate = useThree((s) => s.invalidate);
+
+  // Only the pose the camera was *born* with matters. The parent keeps passing
+  // a current one, and re-applying it as a prop would fight the frame loop.
+  const [start] = useState(initial);
 
   const flightRef = useRef<Flight | null>(null);
   const keysRef = useRef(new Set<string>());
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
   const draggingRef = useRef(false);
+  const lastPointerRef = useRef({ x: 0, y: 0 });
+  const shiftRef = useRef({ x: shift.x, y: shift.y });
+
+  // Anything that changes what the camera should be doing needs a frame to
+  // start doing it.
+  useEffect(() => {
+    invalidate();
+  }, [invalidate, mode, parked, shift.x, shift.y, flightKey, size.width, size.height]);
+
+  // The joystick lives in the DOM and can't see the render loop; this is how
+  // it asks for a frame.
+  useEffect(() => {
+    moveInput.wake = invalidate;
+    return () => {
+      moveInput.wake = null;
+    };
+  }, [invalidate]);
 
   // ── Launch a flight whenever the parent bumps flightKey ────────────────────
   useEffect(() => {
@@ -134,9 +183,14 @@ export default function CameraRig({
       // from wherever the camera currently is, with nothing to snap back from.
       fromQuat: camera.quaternion.clone(),
       toQuat: lookQuaternion(to, flightTo.target),
-      duration: THREE.MathUtils.clamp(distance / 24, 1.1, 2.3),
+      fromFov: camera.fov,
+      toFov: flightTo.fov,
+      // Reduced motion: the flight still "happens", so everything waiting on
+      // its completion works unchanged — it just takes no time.
+      duration: instant ? 0 : THREE.MathUtils.clamp(distance / 24, 1.1, 2.3),
       elapsed: 0,
     };
+    invalidate();
     // `camera` and `flightTo` are read at launch time on purpose; re-running
     // this effect when they change would restart the flight mid-air.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,10 +203,17 @@ export default function CameraRig({
   useEffect(() => {
     const canvas = gl.domElement;
     // The canvas needs to be focusable to receive key events at all.
-    canvas.tabIndex = 0;
+    canvas.tabIndex = mode === "roam" ? 0 : -1;
 
     const keys = keysRef.current;
-    const onKeyDown = (e: KeyboardEvent) => keys.add(e.code);
+    const onKeyDown = (e: KeyboardEvent) => {
+      keys.add(e.code);
+      if (mode === "roam") {
+        // Arrow keys would otherwise scroll the page under the canvas.
+        if (e.code.startsWith("Arrow")) e.preventDefault();
+        invalidate();
+      }
+    };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.code);
     /** Held keys would otherwise stay "pressed" forever after focus is lost. */
     const onBlur = () => keys.clear();
@@ -160,19 +221,27 @@ export default function CameraRig({
     const onPointerDown = (e: PointerEvent) => {
       draggingRef.current = true;
       pointerState.dragDistance = 0;
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
       canvas.setPointerCapture(e.pointerId);
     };
 
     const onPointerMove = (e: PointerEvent) => {
       if (!draggingRef.current) return;
-      pointerState.dragDistance += Math.abs(e.movementX) + Math.abs(e.movementY);
+      // Measured from the last position rather than read from movementX/Y,
+      // which some touch browsers leave at zero.
+      const dx = e.clientX - lastPointerRef.current.x;
+      const dy = e.clientY - lastPointerRef.current.y;
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+
+      pointerState.dragDistance += Math.abs(dx) + Math.abs(dy);
       if (mode !== "roam") return;
-      yawRef.current -= e.movementX * LOOK_SENSITIVITY;
+      yawRef.current -= dx * LOOK_SENSITIVITY;
       pitchRef.current = THREE.MathUtils.clamp(
-        pitchRef.current - e.movementY * LOOK_SENSITIVITY,
+        pitchRef.current - dy * LOOK_SENSITIVITY,
         -MAX_PITCH,
         MAX_PITCH
       );
+      invalidate();
     };
 
     const onPointerUp = (e: PointerEvent) => {
@@ -199,7 +268,7 @@ export default function CameraRig({
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerUp);
     };
-  }, [gl, mode]);
+  }, [gl, mode, invalidate]);
 
   // Entering roam adopts whatever the camera is already doing, so the handover
   // from a parked pose to player control has no visible jump.
@@ -211,40 +280,46 @@ export default function CameraRig({
     tmpEuler.setFromQuaternion(camera.quaternion, "YXZ");
     yawRef.current = tmpEuler.y;
     pitchRef.current = THREE.MathUtils.clamp(tmpEuler.x, -MAX_PITCH, MAX_PITCH);
-    gl.domElement.focus();
+    gl.domElement.focus({ preventScroll: true });
   }, [mode, camera, gl]);
 
   useFrame((_, rawDelta) => {
-    // A backgrounded tab resumes with an enormous delta, which would teleport
-    // the camera across the map on the first frame back.
-    const dt = Math.min(rawDelta, 0.1);
+    // A backgrounded tab — or, on demand, a long idle spell — resumes with an
+    // enormous delta, which would teleport the camera on the first frame back.
+    const dt = Math.min(rawDelta, 0.05);
+    let moving = false;
 
     if (mode === "flying") {
       const flight = flightRef.current;
       if (flight) {
         flight.elapsed += dt;
-        const t = THREE.MathUtils.clamp(flight.elapsed / flight.duration, 0, 1);
+        const t = flight.duration === 0 ? 1 : THREE.MathUtils.clamp(flight.elapsed / flight.duration, 0, 1);
         const eased = easeInOutCubic(t);
 
         flight.curve.getPoint(eased, tmpVec);
         camera.position.copy(tmpVec);
         camera.quaternion.slerpQuaternions(flight.fromQuat, flight.toQuat, eased);
+        camera.fov = THREE.MathUtils.lerp(flight.fromFov, flight.toFov, eased);
+        camera.updateProjectionMatrix();
 
         if (t >= 1) {
           flightRef.current = null;
           onFlightComplete();
         }
+        moving = true;
       }
     } else if (mode === "roam") {
       const keys = keysRef.current;
-      let forward = 0;
-      let strafe = 0;
+      let forward = moveInput.forward;
+      let strafe = moveInput.strafe;
       for (const code of keys) {
         if (FORWARD_KEYS.has(code)) forward += 1;
         else if (BACK_KEYS.has(code)) forward -= 1;
         else if (LEFT_KEYS.has(code)) strafe -= 1;
         else if (RIGHT_KEYS.has(code)) strafe += 1;
       }
+      forward = THREE.MathUtils.clamp(forward, -1, 1);
+      strafe = THREE.MathUtils.clamp(strafe, -1, 1);
 
       if (forward !== 0 || strafe !== 0) {
         const yaw = yawRef.current;
@@ -257,49 +332,97 @@ export default function CameraRig({
         camera.position.x += (-sin * forward + cos * strafe) * step;
         camera.position.z += (-cos * forward - sin * strafe) * step;
 
-        camera.position.x = THREE.MathUtils.clamp(
-          camera.position.x,
-          -ROAM_X_LIMIT,
-          ROAM_X_LIMIT
-        );
-        camera.position.z = THREE.MathUtils.clamp(
-          camera.position.z,
-          BLOCK_FAR + 18,
-          BLOCK_NEAR + 12
-        );
+        camera.position.x = THREE.MathUtils.clamp(camera.position.x, -ROAM_X_LIMIT, ROAM_X_LIMIT);
+        camera.position.z = THREE.MathUtils.clamp(camera.position.z, bounds.far + 18, bounds.near + 12);
+        moving = true;
       }
 
-      camera.position.y = ROAM_HEIGHT;
+      // Settle onto walking height and the standard lens rather than snapping,
+      // so arriving in roam from a storefront is a move too.
+      const k = instant ? 1 : damp(6, dt);
+      if (Math.abs(camera.position.y - ROAM_HEIGHT) > 0.002) {
+        camera.position.y = THREE.MathUtils.lerp(camera.position.y, ROAM_HEIGHT, k);
+        moving = true;
+      }
+      if (Math.abs(camera.fov - 50) > 0.02) {
+        camera.fov = THREE.MathUtils.lerp(camera.fov, 50, k);
+        camera.updateProjectionMatrix();
+        moving = true;
+      }
       tmpEuler.set(pitchRef.current, yawRef.current, 0, "YXZ");
       camera.quaternion.setFromEuler(tmpEuler);
+      if (draggingRef.current) moving = true;
     } else if (parked) {
       // home and focused: ease onto the parked pose. Easing rather than
       // snapping is what makes arriving from a flight, or being handed back
       // from roam, look like the camera settling instead of teleporting.
-      const k = damp(7, dt);
+      const k = instant ? 1 : damp(7, dt);
       camera.position.lerp(parked.position, k);
       lookQuaternion(camera.position, parked.target, tmpQuat);
       camera.quaternion.slerp(tmpQuat, k);
+      if (Math.abs(camera.fov - parked.fov) > 0.02) {
+        camera.fov = THREE.MathUtils.lerp(camera.fov, parked.fov, k);
+        camera.updateProjectionMatrix();
+        moving = true;
+      }
+
+      if (
+        camera.position.distanceToSquared(parked.position) > 1e-6 ||
+        camera.quaternion.angleTo(tmpQuat) > 1e-4
+      ) {
+        moving = true;
+      }
+    }
+
+    // ── Lens shift ──────────────────────────────────────────────────────────
+    //
+    // setViewOffset renders a window onto a larger virtual image. Moving that
+    // window right slides the picture left on screen, which is exactly what
+    // centring the storefront beside a right-hand panel needs — without
+    // turning the camera, so walls stay vertical.
+    const s = shiftRef.current;
+    const k = instant ? 1 : damp(5, dt);
+    s.x = THREE.MathUtils.lerp(s.x, shift.x, k);
+    s.y = THREE.MathUtils.lerp(s.y, shift.y, k);
+    if (Math.abs(s.x - shift.x) < 1e-4) s.x = shift.x;
+    if (Math.abs(s.y - shift.y) < 1e-4) s.y = shift.y;
+    if (s.x !== shift.x || s.y !== shift.y) moving = true;
+
+    if (s.x === 0 && s.y === 0) {
+      if (camera.view?.enabled) camera.clearViewOffset();
+    } else {
+      camera.setViewOffset(
+        size.width,
+        size.height,
+        -s.x * size.width,
+        s.y * size.height,
+        size.width,
+        size.height
+      );
     }
 
     // Publish the live pose so the parent can snapshot a return destination.
     poseRef.current.position.copy(camera.position);
     camera.getWorldDirection(tmpVec);
-    poseRef.current.target
-      .copy(camera.position)
-      .addScaledVector(tmpVec, 20);
+    poseRef.current.target.copy(camera.position).addScaledVector(tmpVec, 20);
+    poseRef.current.fov = camera.fov;
+
+    if (moving) invalidate();
   });
 
   return (
     <PerspectiveCamera
       makeDefault
-      position={[HOME_START.x, HOME_START.y, HOME_START.z]}
-      fov={50}
+      position={[start.position.x, start.position.y, start.position.z]}
+      // Aimed once, at mount. After that the frame loop owns the orientation.
+      onUpdate={(self) => {
+        if (self.userData.aimed) return;
+        self.userData.aimed = true;
+        self.lookAt(start.target);
+      }}
+      fov={start.fov}
       near={0.5}
       far={400}
     />
   );
 }
-
-/** Initial placement, before the first frame eases it onto the home pose. */
-const HOME_START = new THREE.Vector3(0, 8, 26);

@@ -121,7 +121,7 @@ function draw(
   const r = content.result;
 
   // Header band, in the restaurant's own colour so a board is unmistakably
-  // attached to the building it stands in front of.
+  // attached to the building it hangs in.
   ctx.fillStyle = brand;
   roundRect(ctx, 8, 8, BOARD_W - 16, 96, 20);
   ctx.fill();
@@ -134,68 +134,68 @@ function draw(
   ctx.font = `46px "${FONT_FAMILY}"`;
   ctx.fillText(r.label, BOARD_W / 2, 58);
 
-  // Items
+  // Items — one line each, cut short rather than wrapped. A board in a window
+  // is read at a glance from across the pavement; the full list, with every
+  // number, is in the panel beside it. So this shows *what the order is* and
+  // nothing that needs a second look.
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  let y = 142;
+  const MAX_LINES = 5;
+  const lines = r.items.map((i) => (i.quantity > 1 ? `${i.quantity}× ` : "") + i.name);
+  const shown = lines.length > MAX_LINES ? lines.slice(0, MAX_LINES - 1) : lines;
 
-  for (const item of r.items) {
-    ctx.font = `34px "${FONT_FAMILY}"`;
-    ctx.fillStyle = BODY_INK;
-    const lines = wrap(ctx, item.name, innerWidth - 24, 2);
-    for (const line of lines) {
-      ctx.fillText(line, pad, y);
-      y += 40;
-    }
-
-    // The slot name on build-your-own orders ("protein", "rice"). Absent on
-    // fixed menus, where an order is just a flat list.
-    if (item.group) {
-      ctx.font = `24px "${FONT_FAMILY}"`;
-      ctx.fillStyle = MUTED_INK;
-      ctx.fillText(item.group.toUpperCase(), pad + 4, y);
-      y += 30;
-    }
-    y += 8;
-
-    if (y > BOARD_H - 190) break;
+  let y = 128;
+  ctx.font = `38px "${FONT_FAMILY}"`;
+  ctx.fillStyle = BODY_INK;
+  for (const line of shown) {
+    ctx.fillText(fit(ctx, line, innerWidth), pad, y);
+    y += 56;
+  }
+  if (lines.length > shown.length) {
+    ctx.fillStyle = MUTED_INK;
+    ctx.font = `30px "${FONT_FAMILY}"`;
+    ctx.fillText(`+ ${lines.length - shown.length} more`, pad, y + 2);
   }
 
   // Numbers, pinned to the bottom so every board's figures line up with its
   // neighbours' and can be compared at a glance.
-  const barY = BOARD_H - 148;
+  const barY = BOARD_H - 196;
   ctx.fillStyle = "#1B1714";
   roundRect(ctx, 8, barY, BOARD_W - 16, BOARD_H - barY - 8, 20);
   ctx.fill();
 
   ctx.textAlign = "left";
-  ctx.fillStyle = brand;
-  ctx.font = `52px "${FONT_FAMILY}"`;
-  ctx.fillText(`${r.total_calories}`, pad, barY + 26);
+  ctx.fillStyle = BODY_INK;
+  ctx.font = `92px "${FONT_FAMILY}"`;
+  ctx.fillText(`${r.total_calories}`, pad, barY + 14);
 
   const calWidth = ctx.measureText(`${r.total_calories}`).width;
   ctx.fillStyle = MUTED_INK;
-  ctx.font = `28px "${FONT_FAMILY}"`;
-  ctx.fillText("cal", pad + calWidth + 10, barY + 48);
+  ctx.font = `32px "${FONT_FAMILY}"`;
+  ctx.fillText("cal", pad + calWidth + 12, barY + 66);
 
   ctx.fillStyle = BODY_INK;
-  ctx.font = `30px "${FONT_FAMILY}"`;
-  ctx.fillText(
-    `${r.total_protein_g}g protein · ${r.total_carbs_g}g carbs`,
-    pad,
-    barY + 88
-  );
+  ctx.font = `34px "${FONT_FAMILY}"`;
+  ctx.fillText(`${Math.round(r.total_protein_g)}g protein`, pad, barY + 128);
 
   // Prices are US national averages and vary by more than a dollar between
-  // markets, so they are always shown as approximate.
-  ctx.textAlign = "right";
-  ctx.fillStyle = brand;
-  ctx.font = `40px "${FONT_FAMILY}"`;
-  // …and are missing entirely for a restaurant with no price data, in which
-  // case the corner is left empty rather than showing "$0.00".
+  // markets, so they are always shown as approximate — and are missing
+  // entirely for a restaurant with no price data, in which case the corner is
+  // left empty rather than showing "$0.00".
   if (r.total_price !== null) {
-    ctx.fillText(`~$${r.total_price.toFixed(2)}`, BOARD_W - pad, barY + 30);
+    ctx.textAlign = "right";
+    ctx.fillStyle = MUTED_INK;
+    ctx.font = `36px "${FONT_FAMILY}"`;
+    ctx.fillText(`~$${r.total_price.toFixed(2)}`, BOARD_W - pad, barY + 126);
   }
+}
+
+/** Cuts `text` to fit `maxWidth`, marking the cut with an ellipsis. */
+function fit(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let cut = text;
+  while (cut.length > 1 && ctx.measureText(`${cut}…`).width > maxWidth) cut = cut.slice(0, -1);
+  return `${cut.trimEnd()}…`;
 }
 
 /** Builds a board texture, redrawing whenever its content changes. */
@@ -211,7 +211,7 @@ export function useBoardTexture(
   // Serialised so the effect re-runs on a genuine content change rather than
   // on every render that happens to build a new object literal.
   const key = content.result
-    ? `${content.result.label}|${content.result.items.map((i) => i.id).join(",")}`
+    ? `${content.result.label}|${content.result.id}`
     : `msg:${content.message ?? ""}`;
 
   useEffect(() => {

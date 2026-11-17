@@ -23,8 +23,8 @@ both work now, but 22 is what CI runs.
 |---|---|---|
 | 1 | Data layer: libSQL, migrations, seed files, provenance, real role/daypart/weight columns | **done** |
 | 2 | Engine: every defect in the handoff table fixed test-first; constraints vs targets vs preferences; consistent results | **done** |
-| 3 | Product experience: accessible DOM results, item detail, chat-style refinement, restaurant pages, touch, fallbacks, mobile | next |
-| 4 | Dynamic ingestion and a street that works for N restaurants | pending |
+| 3 | Product experience: accessible DOM results, item detail, chat-style refinement, restaurant pages, touch, fallbacks, mobile | **done** (first review pass) |
+| 4 | Dynamic ingestion (the street already works for N restaurants) | next |
 | 5 | Review loop (Playwright screenshots, independent review), CI, README, deploy config | pending |
 
 ## What exists right now
@@ -45,9 +45,15 @@ both work now, but 22 is what CI runs.
   `{ restaurant, query, criteria, results, notices, data }`. `context` is the
   previous response's `criteria.canonical`, which is how a conversation
   continues with no server-side session.
-- **Frontend** — still the `main` UI (3D street, fly-ins, three boards). It
-  compiles against the new contract but does not use criteria, notices or
-  results 4–5 yet. That is Phase 3.
+- **Frontend** — rebuilt (ADR 0007). `app/components/Experience.tsx` is the
+  shell for both `/` and `/restaurant/[slug]`. Results are DOM order cards
+  with an item-by-item breakdown; the storefront panel is a conversation that
+  keeps context, with removable chips; restaurant pages are linkable and
+  server-rendered; phones get a bottom sheet and a thumb pad for walking;
+  reduced motion and a no-WebGL flat street are handled. The 3D street is
+  driven by the database's restaurant list, for any number of restaurants.
+- **Review loop** — `npm run screenshots` (with `npm run dev` running) saves
+  the whole walkthrough at desktop and phone sizes to `.screenshots/`.
 
 ## Decisions
 

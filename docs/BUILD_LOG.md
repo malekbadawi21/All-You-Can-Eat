@@ -182,3 +182,65 @@ every parser test happened to put a restaurant name between the two phrases.
 **What I rejected.** Enumerating condiments exhaustively (577,500 builds at
 Chipotle; greedy gets the same answers in 5ms). Using the visitor's clock for
 breakfast (ADR 0006). An LLM parser (needs a key; not reproducible).
+
+---
+
+## Phase 3 — The product experience
+
+**Goal.** Every result reachable as real DOM; all results viewable with
+item-level detail; refinement that keeps context; linkable restaurant pages;
+touch movement; reduced motion; a no-WebGL fallback; a phone layout.
+
+**The approach.** Turn the app inside out (ADR 0007). Before, the 3D scene was
+the app and the DOM was a search box on top of it. Now the DOM is the app — a
+panel with a conversation and order cards — and the scene is an enhancement
+behind it that the page works without.
+
+**How it was reviewed.** `npm run screenshots` drives real Chrome through the
+whole app at 1440×900 and 390×844 and saves a picture of each step. I looked at
+every one and fixed what I saw, then shot again. Things only the pictures
+showed: the storefront framed so tightly it read as cropped; the three boards
+running right-to-left so "Best match" sat by the door; a bench parked in front
+of the windows; right-hand storefronts in shadow with unreadable signs; the
+conversation scrolling past its own newest reply; on a phone, the first board
+cut off the edge of the screen.
+
+### File by file
+
+- **`app/components/Experience.tsx`** — the shell. Holds the view (home / roam
+  / storefront), the conversation turns, the camera mode and flights, and keeps
+  the URL in step. Read its header comment first.
+- **`app/page.tsx`, `app/restaurant/[slug]/page.tsx`** — server components.
+  Both load the street from the database; the restaurant page also runs the
+  search so results are in the HTML. `app/not-found.tsx` lists what exists.
+- **`lib/street.ts`** — restaurants plus a storefront identity for each.
+- **`lib/restaurants.ts`** — no longer a list of seven. `identityFor()` gives a
+  deterministic storefront to a restaurant that has none; `placeRestaurants()`
+  places any number.
+- **`app/components/ui/`**
+  - `StorefrontPanel.tsx` — the conversation: chips, transcript, cards,
+    suggestions, message box, provenance line.
+  - `OrderCard.tsx` — one order, with an item-by-item nutrition table.
+  - `HomePanel.tsx` — the one-box search, examples, and real links to every
+    restaurant.
+  - `SearchField.tsx`, `Joystick.tsx` (thumb pad for walking),
+    `StaticStreet.tsx` (the flat street).
+  - `conversation.ts` — turn types, the fetch, and every sentence the panel
+    says. `hooks.ts` — viewport, reduced motion, pointer type, WebGL support.
+- **`app/components/scene/`**
+  - `CameraRig.tsx` — renders on demand; lens shift; eases field of view;
+    reads the joystick; instant flights under reduced motion.
+  - `cameraPoses.ts` — `focusPose()` now works out distance and lens from the
+    shape of the free area instead of using fixed numbers.
+  - `cityLayout.ts` — `buildCity(placements)`, a pure function. Street
+    furniture is kept clear of shopfronts.
+  - `CityScene.tsx` — takes the placements; fill light for the shaded side of
+    the street; reports a lost context.
+  - `ShopfrontGlass.tsx`, `boardTexture.ts` — boards read left to right, show
+    quantities, and light up with the card that has attention.
+- **`app/globals.css`** — the tokens, one focus ring, reduced-motion rules.
+- **`scripts/screenshots.ts`** — the review loop.
+- **Deleted:** `app/components/ui/Overlay.tsx`, `useSearch.ts`.
+
+**What I rejected.** Projecting HTML into the scene; a modal chat; full page
+navigation between storefronts (ADR 0007).

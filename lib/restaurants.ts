@@ -3,20 +3,26 @@
 // This is presentation data: colour, roofline, where on the block a restaurant
 // stands. The search API never returns any of it and never should — nutrition
 // facts and architecture are different concerns. The two agree on one thing,
-// `slug`, which is the stable identifier in the search contract, so the scene
-// can react to a SearchResponse without either side importing the other.
+// `slug`, so the scene can react to a search result without either side
+// importing the other.
 //
-// We have no right to use anyone's logo, so recognition is built from four
-// layers instead, in descending order of how far away they work:
+// We have no right to use anyone's logo, so recognition is built from layers
+// instead, in descending order of how far away they work:
 //
 //   1. brand colour   — readable at the far end of the block
 //   2. roofline       — readable once the silhouette resolves
 //   3. sign + awning  — readable from the pavement
-//   4. mascot prop    — readable at the door
 //
-// The rule to hold: (1) and (2) alone must be enough to tell any two
-// restaurants apart. If you squint at the street and two buildings merge,
-// that's a bug in this table, not in the renderer.
+// WHERE THE DATA LIVES NOW: a restaurant's identity is stored with it in the
+// database (the `identity` column; see db/seed/*.json for the seven
+// hand-authored ones). This file no longer lists restaurants at all. It does
+// two things for *any* list it is handed:
+//
+//   identityFor()      gives a storefront to a restaurant that has none —
+//                      which is every dynamically ingested one
+//   placeRestaurants() decides where each stands on the street
+//
+// That is what lets the street work for N restaurants instead of seven.
 
 export type RoofStyle = "hip" | "flat" | "gable" | "pagoda" | "aframe";
 
@@ -44,11 +50,60 @@ export interface StorefrontIdentity {
   height: number;
 }
 
-export interface RestaurantIdentity extends StorefrontIdentity {
-  /** Matches the slug used by parseQuery and the restaurants table. */
+/** A restaurant as the scene needs it: who, and what it looks like. */
+export interface StreetRestaurant {
   slug: string;
   name: string;
-  side: "left" | "right";
+  identity: StorefrontIdentity;
+}
+
+// ── A storefront for a restaurant nobody has designed one for ────────────────
+//
+// Generated from the slug, so the same restaurant always gets the same
+// building — on every load, on every machine, and before and after a redeploy.
+// The palette is hand-picked rather than computed: every pair of colours here
+// was chosen so the sign lettering stays readable, which a random hue cannot
+// promise. None of them is anyone's trade dress; a newly ingested restaurant
+// gets *a* distinct building, not an imitation of its real one.
+
+const PALETTE: Pick<StorefrontIdentity, "brand" | "trim" | "ink">[] = [
+  { brand: "#2F6DB5", trim: "#F3ECDD", ink: "#FBF7F0" }, // blue
+  { brand: "#2E8B57", trim: "#F5E6A8", ink: "#FBF7F0" }, // green
+  { brand: "#1F8A8A", trim: "#F2E9D8", ink: "#F7FBFA" }, // teal
+  { brand: "#B5527A", trim: "#F6E9DC", ink: "#FFF7F2" }, // rose
+  { brand: "#3B4A6B", trim: "#E9B44C", ink: "#F6EFE0" }, // navy and gold
+  { brand: "#6F8F2F", trim: "#F4EBD0", ink: "#FBF7F0" }, // olive
+  { brand: "#C96A3D", trim: "#2F6F73", ink: "#FFF6EC" }, // terracotta
+  { brand: "#5B4A9C", trim: "#F0D9A8", ink: "#F7F2FF" }, // indigo
+  { brand: "#E3A72F", trim: "#2E5E8C", ink: "#2A2410" }, // amber and blue
+  { brand: "#4E8FA8", trim: "#F7E3C4", ink: "#F7FBFD" }, // sky
+];
+
+const ROOFS: RoofStyle[] = ["flat", "hip", "gable", "flat", "hip"];
+
+/** FNV-1a: a small, stable string hash. Not cryptographic, and needn't be. */
+function hash(text: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+export function identityFor(slug: string, stored: StorefrontIdentity | null): StorefrontIdentity {
+  if (stored) return stored;
+
+  const h = hash(slug);
+  // Different bits of the hash drive different choices, so two restaurants
+  // that land on the same colour needn't also share a roof and a size.
+  return {
+    ...PALETTE[h % PALETTE.length],
+    roof: ROOFS[(h >>> 8) % ROOFS.length],
+    width: 12 + ((h >>> 12) % 3),
+    depth: 11 + ((h >>> 16) % 2),
+    height: 6 + ((h >>> 20) % 4) * 0.5,
+  };
 }
 
 // ── Street geometry ──────────────────────────────────────────────────────────
@@ -75,128 +130,43 @@ const FIRST_Z = -6;
  */
 const STAGGER = SPACING / 2;
 
-export const RESTAURANTS: RestaurantIdentity[] = [
-  {
-    slug: "chick-fil-a",
-    name: "Chick-fil-A",
-    brand: "#DD0031",
-    trim: "#FBF7F0",
-    ink: "#FBF7F0",
-    roof: "hip",
-    side: "left",
-    width: 13,
-    depth: 11,
-    height: 7,
-  },
-  {
-    slug: "mcdonalds",
-    name: "McDonald's",
-    brand: "#EFB33C",
-    trim: "#C0392B",
-    ink: "#3A2A12",
-    roof: "flat",
-    side: "right",
-    width: 14,
-    depth: 12,
-    height: 6.5,
-  },
-  {
-    slug: "chipotle",
-    name: "Chipotle",
-    brand: "#8C2B22",
-    trim: "#C9A227",
-    ink: "#F5E9D0",
-    roof: "flat",
-    side: "left",
-    width: 12,
-    depth: 11,
-    height: 8,
-  },
-  {
-    slug: "taco-bell",
-    name: "Taco Bell",
-    brand: "#702082",
-    trim: "#F0E4CE",
-    ink: "#F7EFDF",
-    roof: "gable",
-    side: "right",
-    width: 13,
-    depth: 11,
-    height: 6,
-  },
-  {
-    slug: "panda-express",
-    name: "Panda Express",
-    brand: "#C8102E",
-    trim: "#3A3A3A",
-    ink: "#FBF7F0",
-    roof: "pagoda",
-    side: "left",
-    width: 13,
-    depth: 11,
-    height: 6,
-  },
-  {
-    slug: "raising-canes",
-    name: "Raising Cane's",
-    brand: "#E8B22B",
-    trim: "#C0392B",
-    ink: "#3A2A12",
-    roof: "hip",
-    side: "right",
-    width: 12,
-    depth: 11,
-    height: 6.5,
-  },
-  {
-    slug: "whataburger",
-    name: "Whataburger",
-    brand: "#EA580C",
-    trim: "#FBF7F0",
-    ink: "#FFF6EC",
-    roof: "aframe",
-    side: "left",
-    width: 13,
-    depth: 12,
-    height: 5,
-  },
-];
-
-export interface RestaurantPlacement extends RestaurantIdentity {
+export interface RestaurantPlacement extends StorefrontIdentity {
+  slug: string;
+  name: string;
+  side: "left" | "right";
   /** World position of the building's centre, at ground level. */
   position: [number, number, number];
   /** Y rotation — right-hand buildings are the same model turned around. */
   rotation: number;
-  /** World position of the doorway, used later for the camera fly-in. */
+  /** World position of the doorway, used for the camera fly-in. */
   door: [number, number, number];
 }
 
 /**
- * Positions are computed from each restaurant's index down its own side of the
- * street rather than written by hand, so the layout stays consistent and
- * adding a restaurant means adding a row above and nothing else.
+ * Where each restaurant stands. Sides alternate down the list — first on the
+ * left, second on the right — and each side fills from the near end, so adding
+ * a restaurant extends the street rather than rearranging it. Nothing here
+ * knows how many restaurants there are.
  */
-export const PLACEMENTS: RestaurantPlacement[] = (() => {
-  let leftCount = 0;
-  let rightCount = 0;
-
-  return RESTAURANTS.map((r) => {
-    const isLeft = r.side === "left";
-    const index = isLeft ? leftCount++ : rightCount++;
+export function placeRestaurants(restaurants: StreetRestaurant[]): RestaurantPlacement[] {
+  return restaurants.map((r, i) => {
+    const isLeft = i % 2 === 0;
+    const index = Math.floor(i / 2);
+    const { identity } = r;
 
     const z = FIRST_Z - index * SPACING - (isLeft ? 0 : STAGGER);
     // The building line is the front face, so the centre sits half a depth back.
-    const x = (BUILDING_LINE + r.depth / 2) * (isLeft ? -1 : 1);
+    const x = (BUILDING_LINE + identity.depth / 2) * (isLeft ? -1 : 1);
     const doorX = BUILDING_LINE * (isLeft ? -1 : 1);
 
     return {
-      ...r,
-      position: [x, 0, z] as [number, number, number],
+      ...identity,
+      slug: r.slug,
+      name: r.name,
+      side: isLeft ? "left" : "right",
+      position: [x, 0, z],
       rotation: isLeft ? 0 : Math.PI,
-      door: [doorX, 0, z] as [number, number, number],
+      door: [doorX, 0, z],
     };
   });
-})();
-
-export const bySlug = (slug: string): RestaurantPlacement | undefined =>
-  PLACEMENTS.find((p) => p.slug === slug);
+}
