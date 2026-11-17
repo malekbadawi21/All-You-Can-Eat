@@ -7,9 +7,19 @@ import {
   mainSignature,
 } from "./mealGrammar";
 
-// Terse item builder — the grammar only ever looks at `category`, so a name is
-// carried purely for the signature test.
-const item = (category: string, name = category) => ({ category, name });
+// Terse item builder. The grammar reads role, daypart and portion weight off
+// the item itself; here they are filled in from a category the same way the
+// ingestion classifier would, so each test still reads as "a burger", "a taco".
+const item = (category: string, name = category) => {
+  const profile = profileFor(category);
+  return {
+    category,
+    name,
+    role: profile.role,
+    daypart: profile.daypart,
+    portion_weight: profile.weight,
+  };
+};
 
 const BURGER = item("burger", "Big Mac");
 const SANDWICH = item("sandwich", "Chicken Sandwich");

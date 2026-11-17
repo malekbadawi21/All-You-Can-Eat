@@ -1,6 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { CHIPOTLE_SLOTS, PANDA_SLOTS, CANES_SLOTS } from "./__fixtures__/slots";
+import { menuOf } from "./__fixtures__/seedMenus";
 import type { Slot } from "./db";
+
+type PricedSlot = Omit<Slot, "options"> & { options: (Slot["options"][number] & { price: number })[] };
+
+// Every seeded restaurant has prices. Asserting that here, once, lets the
+// tests below compare them as plain numbers.
+function priced(slug: string): PricedSlot[] {
+  const slots = menuOf(slug).slots;
+  for (const slot of slots) {
+    for (const o of slot.options) {
+      if (o.price === null) throw new Error(`${slug}: ${o.name} has no price`);
+    }
+  }
+  return slots as PricedSlot[];
+}
+
+const CHIPOTLE_SLOTS = priced("chipotle");
+const PANDA_SLOTS = priced("panda-express");
+const CANES_SLOTS = priced("raising-canes");
 
 // These assert price *relationships*, not price *amounts*.
 //
@@ -9,13 +27,13 @@ import type { Slot } from "./db";
 // rather than for being wrong. The relationships are what the optimizer
 // actually reasons about, and they hold regardless of the absolute numbers.
 //
-// The fixtures are generated from the seed data in lib/db.ts, so regenerating
-// them after a bad price edit is what makes these fail.
+// They read the seed documents in db/seed/ directly, so a bad price edit there
+// fails here.
 
-const slot = (slots: Slot[], name: string) =>
+const slot = (slots: PricedSlot[], name: string) =>
   slots.find((s) => s.slot_name === name)!;
 
-const option = (slots: Slot[], slotName: string, optionName: string) =>
+const option = (slots: PricedSlot[], slotName: string, optionName: string) =>
   slot(slots, slotName).options.find((o) => o.name === optionName)!;
 
 describe("Chipotle pricing", () => {

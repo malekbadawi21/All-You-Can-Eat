@@ -44,3 +44,11 @@ data/*.db-wal
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# review-loop screenshots and Playwright output
+/.screenshots/
+/test-results/
+/playwright-report/
+
+# local database
+data/*.db*

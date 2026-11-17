@@ -1,0 +1,78 @@
+{
+  "restaurant": {
+    "slug": "mcdonalds",
+    "name": "McDonald's",
+    "type": "fixed",
+    "aliases": [
+      "mcdonald's",
+      "mcdonalds",
+      "mcd",
+      "mickey d's"
+    ],
+    "identity": {
+      "brand": "#EFB33C",
+      "trim": "#C0392B",
+      "ink": "#3A2A12",
+      "roof": "flat",
+      "width": 14,
+      "depth": 12,
+      "height": 6.5
+    }
+  },
+  "sources": {
+    "nutrition": {
+      "name": "McDonald's published nutrition information",
+      "url": null,
+      "market": "US",
+      "fetched_at": "2026-07-29",
+      "method": "manual-transcription",
+      "notes": "Transcribed by hand from the restaurant's official nutrition pages. The exact page URL and retrieval date were not recorded; fetched_at is the date the figures were committed to the repository."
+    },
+    "price": {
+      "name": "US national average menu prices (multi-source audit)",
+      "url": null,
+      "market": "US national average",
+      "fetched_at": "2026-08-07",
+      "method": "manual-transcription",
+      "notes": "Approximate. National averages audited August 2026 across several price aggregators that disagree with each other; midpoints were used where they did. Real prices vary by more than a dollar between markets."
+    }
+  },
+  "items": [
+    { "name": "Hamburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 0.75, "calories": 250, "protein_g": 13, "fat_g": 9, "carbs_g": 31, "sodium_mg": 510, "price": 1.69 },
+    { "name": "Cheeseburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 0.75, "calories": 300, "protein_g": 15, "fat_g": 13, "carbs_g": 32, "sodium_mg": 680, "price": 1.99 },
+    { "name": "McDouble", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 400, "protein_g": 22, "fat_g": 20, "carbs_g": 34, "sodium_mg": 840, "price": 3.49 },
+    { "name": "Double Cheeseburger", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 450, "protein_g": 25, "fat_g": 24, "carbs_g": 34, "sodium_mg": 1050, "price": 3.99 },
+    { "name": "Big Mac", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 550, "protein_g": 25, "fat_g": 30, "carbs_g": 46, "sodium_mg": 1010, "price": 5.99 },
+    { "name": "Quarter Pounder with Cheese", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 530, "protein_g": 30, "fat_g": 27, "carbs_g": 42, "sodium_mg": 1090, "price": 6.79 },
+    { "name": "Double Quarter Pounder with Cheese", "category": "burger", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 740, "protein_g": 48, "fat_g": 42, "carbs_g": 43, "sodium_mg": 1360, "price": 8.39 },
+    { "name": "McChicken", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 400, "protein_g": 14, "fat_g": 22, "carbs_g": 39, "sodium_mg": 590, "price": 2.49 },
+    { "name": "Crispy Chicken Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 530, "protein_g": 27, "fat_g": 26, "carbs_g": 49, "sodium_mg": 1200, "price": 5.99 },
+    { "name": "Deluxe Crispy Chicken Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 530, "protein_g": 27, "fat_g": 26, "carbs_g": 50, "sodium_mg": 1210, "price": 6.49 },
+    { "name": "Filet-O-Fish", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 390, "protein_g": 17, "fat_g": 19, "carbs_g": 38, "sodium_mg": 580, "price": 5.69 },
+    { "name": "Chicken McNuggets (4 pc)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 170, "protein_g": 9, "fat_g": 10, "carbs_g": 10, "sodium_mg": 310, "price": 2.19 },
+    { "name": "Chicken McNuggets (6 pc)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 250, "protein_g": 14, "fat_g": 15, "carbs_g": 15, "sodium_mg": 470, "price": 3.79 },
+    { "name": "Chicken McNuggets (10 pc)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 420, "protein_g": 23, "fat_g": 25, "carbs_g": 25, "sodium_mg": 770, "price": 5.69 },
+    { "name": "Chicken McNuggets (20 pc)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 830, "protein_g": 45, "fat_g": 49, "carbs_g": 50, "sodium_mg": 1560, "price": 10.49 },
+    { "name": "Egg McMuffin", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 310, "protein_g": 17, "fat_g": 13, "carbs_g": 30, "sodium_mg": 740, "price": 4.99 },
+    { "name": "Sausage McMuffin", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 400, "protein_g": 14, "fat_g": 23, "carbs_g": 30, "sodium_mg": 730, "price": 2.39 },
+    { "name": "Sausage McMuffin with Egg", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 480, "protein_g": 21, "fat_g": 28, "carbs_g": 30, "sodium_mg": 870, "price": 4.49 },
+    { "name": "Sausage McGriddle", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 430, "protein_g": 12, "fat_g": 21, "carbs_g": 48, "sodium_mg": 1030, "price": 3.59 },
+    { "name": "Sausage, Egg & Cheese McGriddle", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 550, "protein_g": 20, "fat_g": 29, "carbs_g": 48, "sodium_mg": 1290, "price": 5.29 },
+    { "name": "Bacon, Egg & Cheese Biscuit", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 460, "protein_g": 19, "fat_g": 26, "carbs_g": 39, "sodium_mg": 1280, "price": 5.49 },
+    { "name": "Sausage Biscuit", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 430, "protein_g": 10, "fat_g": 26, "carbs_g": 36, "sodium_mg": 1010, "price": 2.19 },
+    { "name": "Hotcakes (3 ct)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 350, "protein_g": 8, "fat_g": 9, "carbs_g": 61, "sodium_mg": 590, "price": 3.49 },
+    { "name": "Hash Browns", "category": "breakfast", "role": "side", "daypart": "breakfast", "portion_weight": 0.25, "calories": 150, "protein_g": 1, "fat_g": 9, "carbs_g": 15, "sodium_mg": 310, "price": 1.89 },
+    { "name": "World Famous Fries (Small)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 230, "protein_g": 3, "fat_g": 11, "carbs_g": 30, "sodium_mg": 180, "price": 1.89 },
+    { "name": "World Famous Fries (Medium)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 320, "protein_g": 4, "fat_g": 15, "carbs_g": 43, "sodium_mg": 400, "price": 3.19 },
+    { "name": "World Famous Fries (Large)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 490, "protein_g": 7, "fat_g": 23, "carbs_g": 65, "sodium_mg": 580, "price": 4.09 },
+    { "name": "Side Salad", "category": "salad", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 15, "protein_g": 1, "fat_g": 0, "carbs_g": 3, "sodium_mg": 10, "price": 1.99 },
+    { "name": "Apple Slices", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 15, "protein_g": 0, "fat_g": 0, "carbs_g": 4, "sodium_mg": 0, "price": 0.99 },
+    { "name": "Baked Apple Pie", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 240, "protein_g": 2, "fat_g": 11, "carbs_g": 33, "sodium_mg": 95, "price": 1.29 },
+    { "name": "McFlurry with Oreo Cookies (Regular)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 510, "protein_g": 13, "fat_g": 17, "carbs_g": 79, "sodium_mg": 280, "price": 4.29 },
+    { "name": "McFlurry with M&M's (Regular)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 660, "protein_g": 14, "fat_g": 23, "carbs_g": 102, "sodium_mg": 270, "price": 4.29 },
+    { "name": "Vanilla Soft Serve Cone", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 200, "protein_g": 5, "fat_g": 5, "carbs_g": 34, "sodium_mg": 140, "price": 1.29 },
+    { "name": "Chocolate Shake (Medium)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 630, "protein_g": 15, "fat_g": 17, "carbs_g": 107, "sodium_mg": 260, "price": 3.99 },
+    { "name": "Vanilla Shake (Medium)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 570, "protein_g": 14, "fat_g": 14, "carbs_g": 97, "sodium_mg": 260, "price": 3.99 },
+    { "name": "Strawberry Shake (Medium)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 620, "protein_g": 14, "fat_g": 14, "carbs_g": 105, "sodium_mg": 250, "price": 3.99 }
+  ]
+}

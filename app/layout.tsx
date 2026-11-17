@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Baloo_2 } from "next/font/google";
 import "./globals.css";
 
-const jakarta = Plus_Jakarta_Sans({
+// Baloo 2 is the rounded geometric face the whole site runs on — UI and the
+// lettering baked into the 3D scene alike. The 3D layer can't use this loader
+// (troika needs a real font file, not a CSS variable), so the same family also
+// lives at /public/fonts/Baloo2-Bold.ttf. Keep the two in step.
+const baloo = Baloo_2({
   subsets: ["latin"],
-  variable: "--font-jakarta",
+  variable: "--font-baloo",
   weight: ["400", "500", "600", "700", "800"],
 });
 
@@ -19,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${jakarta.variable} h-full antialiased`}>
+    <html lang="en" className={`${baloo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getRestaurant,
-  getAllRestaurants,
-  getMenuItems,
-  getSlots,
-} from "@/lib/db";
+import { getAllRestaurants, getMenu } from "@/lib/db";
+
+// ── GET /api/menu?restaurant=<slug> ──────────────────────────────────────────
+//
+// The raw menu for one restaurant, with the sources its figures came from.
+// The search endpoint answers "what should I order"; this one answers "what is
+// there", and is what lets anyone check a recommendation against the data.
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("restaurant");
@@ -16,32 +17,21 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const slug = query.toLowerCase().trim();
-  const restaurant = getRestaurant(slug);
+  const menu = await getMenu(query.toLowerCase().trim());
 
-  if (!restaurant) {
-    const available = getAllRestaurants().map((r) => r.name);
+  if (!menu) {
+    const available = (await getAllRestaurants()).map((r) => r.slug);
     return NextResponse.json(
-      { error: `Restaurant not found. Available: ${available.join(", ")}` },
+      { error: "Restaurant not found.", available },
       { status: 404 }
     );
   }
 
-  if (restaurant.type === "fixed") {
-    const items = getMenuItems(restaurant.id);
-    return NextResponse.json({
-      restaurant: restaurant.name,
-      type: restaurant.type,
-      count: items.length,
-      items,
-    });
-  }
+  const { restaurant, items, slots, sources } = menu;
 
-  // build-your-own (e.g. Chipotle)
-  const slots = getSlots(restaurant.id);
   return NextResponse.json({
-    restaurant: restaurant.name,
-    type: restaurant.type,
-    slots,
+    restaurant: { name: restaurant.name, slug: restaurant.slug, type: restaurant.type },
+    sources,
+    ...(restaurant.type === "fixed" ? { count: items.length, items } : { slots }),
   });
 }

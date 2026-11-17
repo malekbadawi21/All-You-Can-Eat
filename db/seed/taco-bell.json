@@ -1,0 +1,70 @@
+{
+  "restaurant": {
+    "slug": "taco-bell",
+    "name": "Taco Bell",
+    "type": "fixed",
+    "aliases": [
+      "taco bell",
+      "tacobell",
+      "tb"
+    ],
+    "identity": {
+      "brand": "#702082",
+      "trim": "#F0E4CE",
+      "ink": "#F7EFDF",
+      "roof": "gable",
+      "width": 13,
+      "depth": 11,
+      "height": 6
+    }
+  },
+  "sources": {
+    "nutrition": {
+      "name": "Taco Bell published nutrition information",
+      "url": null,
+      "market": "US",
+      "fetched_at": "2026-07-29",
+      "method": "manual-transcription",
+      "notes": "Transcribed by hand from the restaurant's official nutrition pages. The exact page URL and retrieval date were not recorded; fetched_at is the date the figures were committed to the repository."
+    },
+    "price": {
+      "name": "US national average menu prices (multi-source audit)",
+      "url": null,
+      "market": "US national average",
+      "fetched_at": "2026-08-07",
+      "method": "manual-transcription",
+      "notes": "Approximate. National averages audited August 2026 across several price aggregators that disagree with each other; midpoints were used where they did. Real prices vary by more than a dollar between markets."
+    }
+  },
+  "items": [
+    { "name": "Crunchy Taco", "category": "taco", "role": "main", "daypart": "all-day", "portion_weight": 0.35, "calories": 170, "protein_g": 8, "fat_g": 9, "carbs_g": 13, "sodium_mg": 310, "price": 1.99 },
+    { "name": "Soft Taco (Beef)", "category": "taco", "role": "main", "daypart": "all-day", "portion_weight": 0.35, "calories": 180, "protein_g": 9, "fat_g": 8, "carbs_g": 19, "sodium_mg": 490, "price": 1.99 },
+    { "name": "Crunchy Taco Supreme", "category": "taco", "role": "main", "daypart": "all-day", "portion_weight": 0.35, "calories": 200, "protein_g": 10, "fat_g": 11, "carbs_g": 15, "sodium_mg": 360, "price": 2.49 },
+    { "name": "Supreme Soft Taco (Beef)", "category": "taco", "role": "main", "daypart": "all-day", "portion_weight": 0.35, "calories": 220, "protein_g": 10, "fat_g": 10, "carbs_g": 22, "sodium_mg": 580, "price": 2.49 },
+    { "name": "Spicy Potato Soft Taco", "category": "taco", "role": "main", "daypart": "all-day", "portion_weight": 0.35, "calories": 220, "protein_g": 5, "fat_g": 10, "carbs_g": 30, "sodium_mg": 420, "price": 1.99 },
+    { "name": "Crispy Chicken Taco", "category": "taco", "role": "main", "daypart": "all-day", "portion_weight": 0.35, "calories": 190, "protein_g": 9, "fat_g": 9, "carbs_g": 18, "sodium_mg": 380, "price": 2.49 },
+    { "name": "Doritos Locos Taco (Nacho Cheese)", "category": "taco", "role": "main", "daypart": "all-day", "portion_weight": 0.35, "calories": 170, "protein_g": 8, "fat_g": 9, "carbs_g": 14, "sodium_mg": 350, "price": 2.29 },
+    { "name": "Doritos Locos Taco Supreme", "category": "taco", "role": "main", "daypart": "all-day", "portion_weight": 0.35, "calories": 200, "protein_g": 9, "fat_g": 11, "carbs_g": 16, "sodium_mg": 390, "price": 2.99 },
+    { "name": "Bean & Cheese Burrito", "category": "burrito", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 380, "protein_g": 13, "fat_g": 11, "carbs_g": 56, "sodium_mg": 1000, "price": 2.29 },
+    { "name": "Beefy 5-Layer Burrito", "category": "burrito", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 490, "protein_g": 18, "fat_g": 19, "carbs_g": 63, "sodium_mg": 1250, "price": 4.49 },
+    { "name": "Burrito Supreme (Beef)", "category": "burrito", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 420, "protein_g": 15, "fat_g": 17, "carbs_g": 53, "sodium_mg": 1120, "price": 3.99 },
+    { "name": "Chicken Chipotle Ranch Burrito", "category": "burrito", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 540, "protein_g": 22, "fat_g": 22, "carbs_g": 61, "sodium_mg": 1460, "price": 5.99 },
+    { "name": "Spicy Double Beef Burrito", "category": "burrito", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 430, "protein_g": 15, "fat_g": 19, "carbs_g": 52, "sodium_mg": 1090, "price": 3.29 },
+    { "name": "Crunchwrap Supreme", "category": "specialty", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 530, "protein_g": 16, "fat_g": 21, "carbs_g": 69, "sodium_mg": 1190, "price": 6.49 },
+    { "name": "Mexican Pizza", "category": "specialty", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 540, "protein_g": 20, "fat_g": 28, "carbs_g": 52, "sodium_mg": 960, "price": 5.49 },
+    { "name": "Chalupa Supreme (Beef)", "category": "chalupa", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 340, "protein_g": 13, "fat_g": 17, "carbs_g": 35, "sodium_mg": 510, "price": 4.99 },
+    { "name": "Chalupa Supreme (Chicken)", "category": "chalupa", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 350, "protein_g": 17, "fat_g": 16, "carbs_g": 36, "sodium_mg": 650, "price": 4.99 },
+    { "name": "Chicken Quesadilla", "category": "quesadilla", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 510, "protein_g": 26, "fat_g": 24, "carbs_g": 49, "sodium_mg": 1150, "price": 6.49 },
+    { "name": "Steak Quesadilla", "category": "quesadilla", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 490, "protein_g": 23, "fat_g": 23, "carbs_g": 49, "sodium_mg": 1210, "price": 6.99 },
+    { "name": "Nachos BellGrande", "category": "nachos", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 730, "protein_g": 20, "fat_g": 36, "carbs_g": 82, "sodium_mg": 1280, "price": 5.99 },
+    { "name": "Nachos Supreme", "category": "nachos", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 430, "protein_g": 13, "fat_g": 20, "carbs_g": 53, "sodium_mg": 800, "price": 4.29 },
+    { "name": "Chips & Nacho Cheese Sauce", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 220, "protein_g": 3, "fat_g": 11, "carbs_g": 29, "sodium_mg": 470, "price": 2.99 },
+    { "name": "Chicken Power Bowl", "category": "bowl", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 470, "protein_g": 26, "fat_g": 19, "carbs_g": 53, "sodium_mg": 1500, "price": 7.99 },
+    { "name": "Veggie Power Bowl", "category": "bowl", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 420, "protein_g": 13, "fat_g": 16, "carbs_g": 55, "sodium_mg": 1190, "price": 7.99 },
+    { "name": "Breakfast Crunchwrap (Sausage)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 670, "protein_g": 25, "fat_g": 37, "carbs_g": 61, "sodium_mg": 1360, "price": 4.49 },
+    { "name": "Breakfast Crunchwrap (Bacon)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 640, "protein_g": 23, "fat_g": 34, "carbs_g": 62, "sodium_mg": 1370, "price": 4.49 },
+    { "name": "Grande Scrambler Burrito (Sausage)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 660, "protein_g": 27, "fat_g": 36, "carbs_g": 62, "sodium_mg": 1630, "price": 5.49 },
+    { "name": "Breakfast Soft Taco (Egg)", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.35, "calories": 170, "protein_g": 6, "fat_g": 8, "carbs_g": 18, "sodium_mg": 330, "price": 2.49 },
+    { "name": "Cinnabon Delights (2 pc)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 160, "protein_g": 2, "fat_g": 10, "carbs_g": 17, "sodium_mg": 80, "price": 1.99 }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "restaurant": {
+    "slug": "chick-fil-a",
+    "name": "Chick-fil-A",
+    "type": "fixed",
+    "aliases": [
+      "chick-fil-a",
+      "chick fil a",
+      "chickfila",
+      "cfa"
+    ],
+    "identity": {
+      "brand": "#DD0031",
+      "trim": "#FBF7F0",
+      "ink": "#FBF7F0",
+      "roof": "hip",
+      "width": 13,
+      "depth": 11,
+      "height": 7
+    }
+  },
+  "sources": {
+    "nutrition": {
+      "name": "Chick-fil-A published nutrition information",
+      "url": null,
+      "market": "US",
+      "fetched_at": "2026-07-29",
+      "method": "manual-transcription",
+      "notes": "Transcribed by hand from the restaurant's official nutrition pages. The exact page URL and retrieval date were not recorded; fetched_at is the date the figures were committed to the repository."
+    },
+    "price": {
+      "name": "US national average menu prices (multi-source audit)",
+      "url": null,
+      "market": "US national average",
+      "fetched_at": "2026-08-07",
+      "method": "manual-transcription",
+      "notes": "Approximate. National averages audited August 2026 across several price aggregators that disagree with each other; midpoints were used where they did. Real prices vary by more than a dollar between markets."
+    }
+  },
+  "items": [
+    { "name": "Chicken Biscuit", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 440, "protein_g": 19, "fat_g": 20, "carbs_g": 48, "sodium_mg": 1070, "price": 3.99 },
+    { "name": "Spicy Chicken Biscuit", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 450, "protein_g": 19, "fat_g": 20, "carbs_g": 49, "sodium_mg": 1090, "price": 4.09 },
+    { "name": "Bacon, Egg & Cheese Biscuit", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 460, "protein_g": 20, "fat_g": 22, "carbs_g": 45, "sodium_mg": 1120, "price": 4.45 },
+    { "name": "Sausage, Egg & Cheese Biscuit", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 610, "protein_g": 21, "fat_g": 37, "carbs_g": 46, "sodium_mg": 1290, "price": 4.99 },
+    { "name": "Egg White Grill", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.75, "calories": 290, "protein_g": 26, "fat_g": 7, "carbs_g": 30, "sodium_mg": 970, "price": 4.65 },
+    { "name": "Greek Yogurt Parfait", "category": "breakfast", "role": "main", "daypart": "breakfast", "portion_weight": 0.5, "calories": 230, "protein_g": 14, "fat_g": 5, "carbs_g": 34, "sodium_mg": 90, "price": 3.35 },
+    { "name": "Hash Browns", "category": "breakfast", "role": "side", "daypart": "breakfast", "portion_weight": 0.25, "calories": 270, "protein_g": 3, "fat_g": 14, "carbs_g": 35, "sodium_mg": 560, "price": 1.39 },
+    { "name": "Chick-fil-A Chicken Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 440, "protein_g": 28, "fat_g": 19, "carbs_g": 40, "sodium_mg": 1350, "price": 5.45 },
+    { "name": "Chick-fil-A Deluxe Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 490, "protein_g": 30, "fat_g": 22, "carbs_g": 41, "sodium_mg": 1390, "price": 6.35 },
+    { "name": "Spicy Chicken Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 450, "protein_g": 28, "fat_g": 19, "carbs_g": 41, "sodium_mg": 1370, "price": 5.55 },
+    { "name": "Spicy Deluxe Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 550, "protein_g": 31, "fat_g": 26, "carbs_g": 49, "sodium_mg": 1540, "price": 6.15 },
+    { "name": "Grilled Chicken Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 320, "protein_g": 29, "fat_g": 6, "carbs_g": 36, "sodium_mg": 800, "price": 5.75 },
+    { "name": "Grilled Chicken Club Sandwich", "category": "sandwich", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 430, "protein_g": 38, "fat_g": 15, "carbs_g": 37, "sodium_mg": 1140, "price": 7.35 },
+    { "name": "Grilled Cool Wrap", "category": "wrap", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 350, "protein_g": 42, "fat_g": 13, "carbs_g": 29, "sodium_mg": 1070, "price": 8.25 },
+    { "name": "Chick-fil-A Nuggets (8 ct)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 260, "protein_g": 26, "fat_g": 12, "carbs_g": 11, "sodium_mg": 1010, "price": 4.95 },
+    { "name": "Chick-fil-A Nuggets (12 ct)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 390, "protein_g": 38, "fat_g": 18, "carbs_g": 17, "sodium_mg": 1460, "price": 6.85 },
+    { "name": "Grilled Nuggets (8 ct)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 140, "protein_g": 25, "fat_g": 4, "carbs_g": 2, "sodium_mg": 500, "price": 5.35 },
+    { "name": "Grilled Nuggets (12 ct)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 200, "protein_g": 38, "fat_g": 5, "carbs_g": 2, "sodium_mg": 740, "price": 7.09 },
+    { "name": "Chick-n-Strips (3 ct)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 310, "protein_g": 23, "fat_g": 14, "carbs_g": 24, "sodium_mg": 800, "price": 6.35 },
+    { "name": "Chick-n-Strips (4 ct)", "category": "entree", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 400, "protein_g": 30, "fat_g": 18, "carbs_g": 31, "sodium_mg": 1080, "price": 8.19 },
+    { "name": "Cobb Salad — Grilled Chicken", "category": "salad", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 430, "protein_g": 38, "fat_g": 22, "carbs_g": 18, "sodium_mg": 1010, "price": 10.25 },
+    { "name": "Spicy Southwest Salad — Grilled Chicken", "category": "salad", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 400, "protein_g": 30, "fat_g": 19, "carbs_g": 30, "sodium_mg": 950, "price": 10.25 },
+    { "name": "Market Salad", "category": "salad", "role": "main", "daypart": "all-day", "portion_weight": 1, "calories": 340, "protein_g": 28, "fat_g": 13, "carbs_g": 26, "sodium_mg": 700, "price": 10.25 },
+    { "name": "Side Salad", "category": "salad", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 80, "protein_g": 5, "fat_g": 5, "carbs_g": 7, "sodium_mg": 150, "price": 3.75 },
+    { "name": "Waffle Potato Fries (Small)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 310, "protein_g": 4, "fat_g": 15, "carbs_g": 41, "sodium_mg": 200, "price": 2.49 },
+    { "name": "Waffle Potato Fries (Medium)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 420, "protein_g": 5, "fat_g": 21, "carbs_g": 52, "sodium_mg": 280, "price": 3.09 },
+    { "name": "Waffle Potato Fries (Large)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 530, "protein_g": 7, "fat_g": 26, "carbs_g": 66, "sodium_mg": 390, "price": 3.49 },
+    { "name": "Mac & Cheese (Small)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 300, "protein_g": 11, "fat_g": 14, "carbs_g": 35, "sodium_mg": 660, "price": 2.99 },
+    { "name": "Mac & Cheese (Medium)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 450, "protein_g": 15, "fat_g": 20, "carbs_g": 54, "sodium_mg": 920, "price": 3.79 },
+    { "name": "Fruit Cup (Small)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 45, "protein_g": 0, "fat_g": 0, "carbs_g": 11, "sodium_mg": 0, "price": 2.15 },
+    { "name": "Fruit Cup (Medium)", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 70, "protein_g": 1, "fat_g": 0, "carbs_g": 18, "sodium_mg": 0, "price": 2.65 },
+    { "name": "Kale Crunch Side", "category": "side", "role": "side", "daypart": "all-day", "portion_weight": 0.25, "calories": 120, "protein_g": 2, "fat_g": 9, "carbs_g": 10, "sodium_mg": 160, "price": 2.65 },
+    { "name": "Chocolate Chunk Cookie", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 360, "protein_g": 4, "fat_g": 17, "carbs_g": 50, "sodium_mg": 310, "price": 1.79 },
+    { "name": "Chocolate Fudge Brownie", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 370, "protein_g": 3, "fat_g": 19, "carbs_g": 50, "sodium_mg": 210, "price": 2.09 },
+    { "name": "Vanilla Milkshake (Small)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 590, "protein_g": 13, "fat_g": 24, "carbs_g": 83, "sodium_mg": 300, "price": 4.45 },
+    { "name": "Chocolate Milkshake (Small)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 570, "protein_g": 13, "fat_g": 24, "carbs_g": 77, "sodium_mg": 270, "price": 4.45 },
+    { "name": "Strawberry Milkshake (Small)", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 670, "protein_g": 13, "fat_g": 26, "carbs_g": 99, "sodium_mg": 340, "price": 4.45 },
+    { "name": "Icedream Cone", "category": "dessert", "role": "dessert", "daypart": "all-day", "portion_weight": 0.25, "calories": 170, "protein_g": 4, "fat_g": 4, "carbs_g": 28, "sodium_mg": 90, "price": 1.55 }
+  ]
+}
